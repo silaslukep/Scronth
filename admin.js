@@ -113,7 +113,7 @@ function setupAdminButtons() {
             showAdminMessage('Please enter a username', 'error');
             return;
         }
-        if (username === 'silas.palmer' || username === 'scronth') {
+        if (username === 'silas.palmer' || username === 'Scronth') {
             showAdminMessage('Cannot remove admin status from this user', 'error');
             return;
         }
@@ -130,7 +130,7 @@ function setupAdminButtons() {
             showAdminMessage('Please enter a username', 'error');
             return;
         }
-        if (username === 'silas.palmer' || username === 'scronth') {
+        if (username === 'silas.palmer' || username === 'Scronth') {
             showAdminMessage('Cannot ban this user', 'error');
             return;
         }

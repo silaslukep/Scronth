@@ -78,7 +78,7 @@ function getProfilePicture(username) {
 
 // Check if user is admin
 function isAdmin(username) {
-    if (username === 'silas.palmer' || username === 'scronth') return true; // Always admin
+    if (username === 'silas.palmer' || username === 'Scronth') return true; // Always admin
     const admins = localStorage.getItem('scronth_admins');
     const adminList = admins ? JSON.parse(admins) : [];
     return adminList.includes(username);
@@ -94,8 +94,8 @@ function setAdminStatus(username, adminStatus) {
             adminList.push(username);
         }
     } else {
-        // Can't remove silas.palmer's or scronth's admin status
-        if (username === 'silas.palmer' || username === 'scronth') return false;
+        // Can't remove silas.palmer's or Scronth's admin status
+        if (username === 'silas.palmer' || username === 'Scronth') return false;
         adminList = adminList.filter(u => u !== username);
     }
     
@@ -112,7 +112,7 @@ function isBanned(username) {
 
 // Ban an account
 function banAccount(username) {
-    if (username === 'silas.palmer' || username === 'scronth') return false; // Can't ban admins
+    if (username === 'silas.palmer' || username === 'Scronth') return false; // Can't ban admins
     const banned = localStorage.getItem('scronth_banned');
     const bannedList = banned ? JSON.parse(banned) : [];
     
