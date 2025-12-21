@@ -3,8 +3,8 @@
 // Initialize default admin account
 function initializeUsers() {
     const users = getUsers();
-    // Always set/reset scronths account password
-    users['scronths'] = 'owneraccount135';
+    // Always set/reset scronth account password
+    users['scronth'] = 'owneraccount135';
     saveUsers(users);
 }
 
