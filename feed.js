@@ -16,9 +16,11 @@ function updateNav() {
         const currentUser = getCurrentUser();
         const nav = document.querySelector('nav');
         if (nav) {
+            const adminLink = isAdmin(currentUser) ? `<a href="admin.html" class="nav-link">admin</a>` : '';
             nav.innerHTML = `
                 <a href="profile.html?user=${currentUser}" class="nav-link">${currentUser}</a>
                 <a href="settings.html" class="nav-link">settings</a>
+                ${adminLink}
                 <a href="#" class="nav-link" id="logout-link">log out</a>
             `;
             
@@ -30,6 +32,14 @@ function updateNav() {
                     window.location.reload();
                 });
             }
+        }
+    } else {
+        const nav = document.querySelector('nav');
+        if (nav) {
+            nav.innerHTML = `
+                <a href="login.html" class="nav-link">log in</a>
+                <a href="signup.html" class="nav-link">sign up</a>
+            `;
         }
     }
 }
@@ -126,6 +136,7 @@ function loadFeed() {
     const feed = document.getElementById('posts-feed');
     if (!feed) return;
     
+    // Load feed for everyone - posts are public!
     const allPosts = getAllPosts();
     const visiblePosts = allPosts.filter(post => !post.blocked);
     
@@ -134,13 +145,16 @@ function loadFeed() {
         return;
     }
     
+    const currentUser = isLoggedIn() ? getCurrentUser() : null;
+    const isCurrentUserAdmin = currentUser && isAdmin(currentUser);
+    
     feed.innerHTML = visiblePosts.map(post => {
         const timestamp = formatTimestamp(post.timestamp);
         const imageHtml = post.image ? `<div class="post-image-container"><img src="${post.image}" alt="Post image" class="post-image"></div>` : '';
         const contentHtml = post.content ? `<div class="post-content">${escapeHtml(post.content)}</div>` : '';
         const pfp = getProfilePicture(post.username);
         const pfpHtml = pfp ? `<img src="${pfp}" alt="${post.username}" class="post-pfp">` : '<div class="post-pfp default-pfp"></div>';
-        const adminControls = isAdmin(getCurrentUser()) ? `<button class="ban-post-btn" data-post-id="${post.id}" title="Ban this post">×</button>` : '';
+        const adminControls = isCurrentUserAdmin ? `<button class="ban-post-btn" data-post-id="${post.id}" title="Ban this post">×</button>` : '';
         return `
             <div class="post-item">
                 <div class="post-header">
@@ -160,7 +174,7 @@ function loadFeed() {
     }).join('');
     
     // Setup admin ban post buttons
-    if (isLoggedIn() && isAdmin(getCurrentUser())) {
+    if (isCurrentUserAdmin) {
         document.querySelectorAll('.ban-post-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const postId = this.dataset.postId;

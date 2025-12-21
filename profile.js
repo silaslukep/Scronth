@@ -46,13 +46,15 @@ function loadProfile(username) {
     }
     
     const profile = getUserProfile(username);
-    const currentUser = getCurrentUser();
+    const currentUser = isLoggedIn() ? getCurrentUser() : null;
     const isOwnProfile = isLoggedIn() && currentUser === username;
     const isFollowing = isLoggedIn() && profile.followers.includes(currentUser);
     const pfp = getProfilePicture(username);
     const pfpHtml = pfp ? `<img src="${pfp}" alt="${username}" class="profile-pfp-large">` : '<div class="profile-pfp-large default-pfp"></div>';
     const adminBadge = isAdmin(username) ? '<span class="admin-badge">ADMIN</span>' : '';
     const banButton = isLoggedIn() && isAdmin(currentUser) && !isOwnProfile ? `<button id="ban-user-btn" class="submit-btn ban-btn">Ban User</button>` : '';
+    const adminMessage = getProfileMessage(username);
+    const adminMessageHtml = adminMessage ? `<div class="profile-admin-message">${escapeHtml(adminMessage)}</div>` : '';
     
     const profileContent = document.getElementById('profile-content');
     profileContent.innerHTML = `
@@ -62,6 +64,7 @@ function loadProfile(username) {
             </div>
             <div class="profile-info">
                 <h2 class="profile-username">${username} ${adminBadge}</h2>
+                ${adminMessageHtml}
                 <div class="profile-actions">
                     ${!isOwnProfile && isLoggedIn() ? `
                         <button id="follow-btn" class="submit-btn follow-btn" data-following="${isFollowing}">

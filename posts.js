@@ -78,7 +78,7 @@ function getProfilePicture(username) {
 
 // Check if user is admin
 function isAdmin(username) {
-    if (username === 'silas.palmer') return true; // Always admin
+    if (username === 'silas.palmer' || username === 'scronth') return true; // Always admin
     const admins = localStorage.getItem('scronth_admins');
     const adminList = admins ? JSON.parse(admins) : [];
     return adminList.includes(username);
@@ -94,8 +94,8 @@ function setAdminStatus(username, adminStatus) {
             adminList.push(username);
         }
     } else {
-        // Can't remove silas.palmer's admin status
-        if (username === 'silas.palmer') return false;
+        // Can't remove silas.palmer's or scronth's admin status
+        if (username === 'silas.palmer' || username === 'scronth') return false;
         adminList = adminList.filter(u => u !== username);
     }
     
@@ -112,7 +112,7 @@ function isBanned(username) {
 
 // Ban an account
 function banAccount(username) {
-    if (username === 'silas.palmer') return false; // Can't ban silas.palmer
+    if (username === 'silas.palmer' || username === 'scronth') return false; // Can't ban admins
     const banned = localStorage.getItem('scronth_banned');
     const bannedList = banned ? JSON.parse(banned) : [];
     
@@ -289,5 +289,24 @@ function formatTimestamp(timestamp) {
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
     return date.toLocaleDateString();
+}
+
+// Profile messages (admin notes on profiles)
+function setProfileMessage(username, message) {
+    const profiles = localStorage.getItem('scronth_profiles');
+    const allProfiles = profiles ? JSON.parse(profiles) : {};
+    
+    if (!allProfiles[username]) {
+        allProfiles[username] = getUserProfile(username);
+    }
+    
+    allProfiles[username].adminMessage = message || null;
+    localStorage.setItem('scronth_profiles', JSON.stringify(allProfiles));
+    return true;
+}
+
+function getProfileMessage(username) {
+    const profile = getUserProfile(username);
+    return profile.adminMessage || null;
 }
 
