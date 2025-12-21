@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Scronth</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo-container">
+                <div class="logo-sphere logo-sphere-back"></div>
+                <div class="logo-sphere logo-sphere-front"></div>
+                <div class="logo-sphere logo-sphere-small"></div>
+            </div>
+            <h1 class="site-title">Scronth</h1>
+            <nav>
+                <a href="login.html" class="nav-link">log in</a>
+                <a href="signup.html" class="nav-link">sign up</a>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        <div class="content-box form-box">
+            <h2 class="form-title">Sign Up</h2>
+            <form class="auth-form">
+                <div class="form-group">
+                    <label for="new-username">Username</label>
+                    <input type="text" id="new-username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-password">Password</label>
+                    <input type="password" id="new-password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" name="confirm-password" required>
+                </div>
+                <button type="submit" class="submit-btn">Sign Up</button>
+            </form>
+            <p class="form-footer">Already have an account? <a href="login.html">Log in</a></p>
+        </div>
+    </main>
+    <script src="auth.js"></script>
+</body>
+</html>
+

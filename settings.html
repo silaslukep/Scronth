@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings - Scronth</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo-container">
+                <div class="logo-sphere logo-sphere-back"></div>
+                <div class="logo-sphere logo-sphere-front"></div>
+                <div class="logo-sphere logo-sphere-small"></div>
+            </div>
+            <h1 class="site-title"><a href="index.html" style="color: white; text-decoration: none;">Scronth</a></h1>
+            <nav>
+                <a href="index.html" class="nav-link">home</a>
+                <span id="nav-user"></span>
+                <a href="#" class="nav-link" id="logout-link" style="display: none;">log out</a>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        <div class="content-box settings-container">
+            <h2 class="form-title">Account Settings</h2>
+            
+            <div id="settings-content"></div>
+            
+            <div id="admin-panel" style="display: none;">
+                <h3 class="section-title">Admin Panel</h3>
+                <div class="admin-section">
+                    <h4>Ban Account</h4>
+                    <div class="admin-form">
+                        <input type="text" id="ban-username" placeholder="Username to ban">
+                        <button type="button" class="submit-btn admin-btn" id="ban-btn">Ban Account</button>
+                    </div>
+                </div>
+                <div class="admin-section">
+                    <h4>Unban Account</h4>
+                    <div class="admin-form">
+                        <input type="text" id="unban-username" placeholder="Username to unban">
+                        <button type="button" class="submit-btn admin-btn" id="unban-btn">Unban Account</button>
+                    </div>
+                </div>
+                <div class="admin-section">
+                    <h4>Ban Post</h4>
+                    <div class="admin-form">
+                        <input type="text" id="ban-post-id" placeholder="Post ID to ban">
+                        <button type="button" class="submit-btn admin-btn" id="ban-post-btn">Ban Post</button>
+                    </div>
+                </div>
+                <div class="admin-section">
+                    <h4>Give Admin Status</h4>
+                    <div class="admin-form">
+                        <input type="text" id="admin-username" placeholder="Username to make admin">
+                        <button type="button" class="submit-btn admin-btn" id="give-admin-btn">Make Admin</button>
+                    </div>
+                </div>
+                <div class="admin-section">
+                    <h4>Remove Admin Status</h4>
+                    <div class="admin-form">
+                        <input type="text" id="remove-admin-username" placeholder="Username to remove admin">
+                        <button type="button" class="submit-btn admin-btn" id="remove-admin-btn">Remove Admin</button>
+                    </div>
+                </div>
+                <div id="admin-message" class="admin-message" style="display: none;"></div>
+            </div>
+        </div>
+    </main>
+    <script src="auth.js"></script>
+    <script src="posts.js"></script>
+    <script src="settings.js"></script>
+</body>
+</html>

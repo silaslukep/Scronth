@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scronth</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo-container">
+                <div class="logo-sphere logo-sphere-back"></div>
+                <div class="logo-sphere logo-sphere-front"></div>
+                <div class="logo-sphere logo-sphere-small"></div>
+            </div>
+            <h1 class="site-title">Scronth</h1>
+            <nav>
+                <a href="login.html" class="nav-link">log in</a>
+                <a href="signup.html" class="nav-link">sign up</a>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        <div class="content-box feed-container">
+            <div class="content-header">
+                <span class="large-o">O</span><span class="scronth-text">Scronth</span>
+            </div>
+            
+            <div id="post-form-container" style="display: none;">
+                <form id="post-form" class="post-form">
+                    <textarea id="post-content" placeholder="enter text here" rows="4" maxlength="500"></textarea>
+                    <div class="image-upload-section">
+                        <label for="post-image" class="image-upload-label">
+                            <span class="upload-icon">📷</span> Attach Photo
+                        </label>
+                        <input type="file" id="post-image" accept="image/*" style="display: none;">
+                        <div id="image-preview" class="image-preview" style="display: none;">
+                            <img id="preview-img" src="" alt="Preview">
+                            <button type="button" id="remove-image" class="remove-image-btn">×</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="submit-btn post-btn">Post</button>
+                </form>
+                <div id="post-error" class="error-message" style="display: none;"></div>
+            </div>
+            
+            <div id="not-logged-in" class="info-text">
+                <p>you cannot create posts since</p>
+                <p>you dont have an account</p>
+            </div>
+            
+            <div id="posts-feed" class="posts-feed"></div>
+        </div>
+    </main>
+    <script src="auth.js"></script>
+    <script src="posts.js"></script>
+    <script src="feed.js"></script>
+</body>
+</html>
+
