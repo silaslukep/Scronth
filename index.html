@@ -55,9 +55,21 @@
             <div id="posts-feed" class="posts-feed"></div>
         </div>
     </main>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="auth.js"></script>
     <script src="posts.js"></script>
     <script src="feed.js"></script>
+    <script>
+        // Initialize Firebase when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            if (typeof firebase !== 'undefined') {
+                initFirebase();
+            }
+        });
+    </script>
 </body>
 </html>
 

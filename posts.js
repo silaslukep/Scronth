@@ -25,19 +25,64 @@ function filterContent(text) {
     return { blocked: false };
 }
 
-// Get all posts from localStorage
-function getAllPosts() {
+// Get all posts - uses Firebase if available, falls back to localStorage
+async function getAllPosts() {
+    // Try Firebase first (cloud storage - visible to all users)
+    if (isFirebaseAvailable()) {
+        try {
+            const snapshot = await db.collection('posts').orderBy('timestamp', 'desc').get();
+            const posts = [];
+            snapshot.forEach(doc => {
+                posts.push({ id: doc.id, ...doc.data() });
+            });
+            console.log('Loaded posts from Firebase (cloud storage - visible to all users):', posts.length);
+            return posts;
+        } catch (error) {
+            console.error('Error loading from Firebase:', error);
+            // Fall back to localStorage
+        }
+    }
+    
+    // Fallback to localStorage (browser-specific)
     const posts = localStorage.getItem('scronth_posts');
     return posts ? JSON.parse(posts) : [];
 }
 
-// Save posts to localStorage
-function savePosts(posts) {
+// Save posts - uses Firebase if available, falls back to localStorage
+async function savePosts(posts) {
+    // Try Firebase first (cloud storage - visible to all users)
+    if (isFirebaseAvailable()) {
+        try {
+            // Save each post to Firebase
+            const batch = db.batch();
+            posts.forEach(post => {
+                const postRef = db.collection('posts').doc(post.id);
+                batch.set(postRef, {
+                    username: post.username,
+                    content: post.content,
+                    image: post.image,
+                    timestamp: post.timestamp || new Date().toISOString(),
+                    blocked: post.blocked || false,
+                    likes: post.likes || [],
+                    replies: post.replies || [],
+                    views: post.views || 0
+                });
+            });
+            await batch.commit();
+            console.log('Saved posts to Firebase (cloud storage - visible to all users)');
+            return;
+        } catch (error) {
+            console.error('Error saving to Firebase:', error);
+            // Fall back to localStorage
+        }
+    }
+    
+    // Fallback to localStorage
     localStorage.setItem('scronth_posts', JSON.stringify(posts));
 }
 
 // Create a new post
-function createPost(username, content, imageData = null) {
+async function createPost(username, content, imageData = null) {
     // Only filter text content if there is text
     if (content && content.trim()) {
         const filterResult = filterContent(content);
@@ -51,7 +96,6 @@ function createPost(username, content, imageData = null) {
         return { success: false, message: 'Please enter text or attach a photo' };
     }
     
-    const posts = getAllPosts();
     const newPost = {
         id: Date.now().toString(),
         username: username,
@@ -64,8 +108,33 @@ function createPost(username, content, imageData = null) {
         views: 0
     };
     
-    posts.unshift(newPost); // Add to beginning
-    savePosts(posts);
+    // Save to Firebase (cloud) if available - makes it visible to ALL users
+    if (isFirebaseAvailable()) {
+        try {
+            await db.collection('posts').doc(newPost.id).set({
+                username: newPost.username,
+                content: newPost.content,
+                image: newPost.image,
+                timestamp: newPost.timestamp,
+                blocked: newPost.blocked,
+                likes: newPost.likes,
+                replies: newPost.replies,
+                views: newPost.views
+            });
+            console.log('Post saved to Firebase cloud storage - visible to ALL users!');
+        } catch (error) {
+            console.error('Error saving to Firebase:', error);
+            // Fall back to localStorage
+            const posts = await getAllPosts();
+            posts.unshift(newPost);
+            await savePosts(posts);
+        }
+    } else {
+        // Fallback to localStorage
+        const posts = await getAllPosts();
+        posts.unshift(newPost);
+        await savePosts(posts);
+    }
     
     // Update user's post count
     updateUserPostCount(username);
@@ -160,16 +229,45 @@ function banPost(postId) {
 }
 
 // Delete a post permanently
-function deletePost(postId) {
-    const posts = getAllPosts();
+async function deletePost(postId) {
+    if (isFirebaseAvailable()) {
+        try {
+            await db.collection('posts').doc(postId).delete();
+            console.log('Post deleted from Firebase');
+            return true;
+        } catch (error) {
+            console.error('Error deleting post from Firebase:', error);
+        }
+    }
+    
+    const posts = await getAllPosts();
     const filteredPosts = posts.filter(p => p.id !== postId);
-    savePosts(filteredPosts);
+    await savePosts(filteredPosts);
     return true;
 }
 
 // Delete a user account permanently
-function deleteUser(username) {
+async function deleteUser(username) {
     if (username === 'silas.palmer' || username === 'Scronth') return false; // Can't delete admins
+    
+    if (isFirebaseAvailable()) {
+        try {
+            // Delete all posts by this user from Firebase
+            const postsSnapshot = await db.collection('posts').where('username', '==', username).get();
+            const batch = db.batch();
+            postsSnapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+            
+            // Delete profile
+            await db.collection('profiles').doc(username).delete();
+            
+            console.log('User deleted from Firebase');
+        } catch (error) {
+            console.error('Error deleting user from Firebase:', error);
+        }
+    }
     
     // Remove from users
     const users = getUsers();
@@ -183,9 +281,9 @@ function deleteUser(username) {
     localStorage.setItem('scronth_profiles', JSON.stringify(allProfiles));
     
     // Delete all their posts
-    const posts = getAllPosts();
+    const posts = await getAllPosts();
     const filteredPosts = posts.filter(p => p.username !== username);
-    savePosts(filteredPosts);
+    await savePosts(filteredPosts);
     
     // Remove from banned list if there
     const banned = localStorage.getItem('scronth_banned');
@@ -390,24 +488,29 @@ function toggleLike(postId, username) {
 }
 
 // Check if user liked a post
-function hasLiked(postId, username) {
+async function hasLiked(postId, username) {
     if (!username) return false;
-    const posts = getAllPosts();
+    
+    if (isFirebaseAvailable()) {
+        try {
+            const postDoc = await db.collection('posts').doc(postId).get();
+            if (!postDoc.exists) return false;
+            const post = postDoc.data();
+            return post.likes && post.likes.includes(username);
+        } catch (error) {
+            console.error('Error checking like in Firebase:', error);
+        }
+    }
+    
+    const posts = await getAllPosts();
     const post = posts.find(p => p.id === postId);
     if (!post || !post.likes) return false;
     return post.likes.includes(username);
 }
 
 // Add reply to post
-function addReply(postId, username, content) {
+async function addReply(postId, username, content) {
     if (!username || !content.trim()) return false;
-    
-    const posts = getAllPosts();
-    const post = posts.find(p => p.id === postId);
-    if (!post) return false;
-    
-    // Initialize if needed
-    if (!post.replies) post.replies = [];
     
     const reply = {
         id: Date.now().toString(),
@@ -416,28 +519,75 @@ function addReply(postId, username, content) {
         timestamp: new Date().toISOString()
     };
     
+    if (isFirebaseAvailable()) {
+        try {
+            const postRef = db.collection('posts').doc(postId);
+            const postDoc = await postRef.get();
+            if (!postDoc.exists) return false;
+            
+            const post = postDoc.data();
+            const replies = post.replies || [];
+            replies.push(reply);
+            
+            await postRef.update({ replies: replies });
+            return true;
+        } catch (error) {
+            console.error('Error adding reply in Firebase:', error);
+        }
+    }
+    
+    const posts = await getAllPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post) return false;
+    
+    // Initialize if needed
+    if (!post.replies) post.replies = [];
+    
     post.replies.push(reply);
-    savePosts(posts);
+    await savePosts(posts);
     return true;
 }
 
 // Get replies for a post
-function getReplies(postId) {
-    const posts = getAllPosts();
+async function getReplies(postId) {
+    if (isFirebaseAvailable()) {
+        try {
+            const postDoc = await db.collection('posts').doc(postId).get();
+            if (!postDoc.exists) return [];
+            const post = postDoc.data();
+            return post.replies || [];
+        } catch (error) {
+            console.error('Error getting replies from Firebase:', error);
+        }
+    }
+    
+    const posts = await getAllPosts();
     const post = posts.find(p => p.id === postId);
     if (!post || !post.replies) return [];
     return post.replies;
 }
 
 // Increment view count for a post
-function incrementViews(postId) {
-    const posts = getAllPosts();
+async function incrementViews(postId) {
+    if (isFirebaseAvailable()) {
+        try {
+            const postRef = db.collection('posts').doc(postId);
+            await postRef.update({
+                views: firebase.firestore.FieldValue.increment(1)
+            });
+            return;
+        } catch (error) {
+            console.error('Error incrementing views in Firebase:', error);
+        }
+    }
+    
+    const posts = await getAllPosts();
     const post = posts.find(p => p.id === postId);
     if (!post) return;
     
     if (!post.views) post.views = 0;
     post.views++;
-    savePosts(posts);
+    await savePosts(posts);
 }
 
 // Format number (e.g., 15000 -> 15K)

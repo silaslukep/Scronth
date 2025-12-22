@@ -9,7 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    loadProfile(profileUser);
+    loadProfile(profileUser).then(() => {
+        loadUserPosts(profileUser);
+    }).catch(err => console.error('Error loading profile:', err));
     updateNav();
 });
 
@@ -122,7 +124,9 @@ function loadProfile(username) {
                 followBtn.textContent = 'Unfollow';
                 followBtn.dataset.following = 'true';
             }
-            loadProfile(username); // Reload to update stats
+            loadProfile(username).then(() => {
+                loadUserPosts(username);
+            }); // Reload to update stats
         });
     }
     
@@ -130,20 +134,20 @@ function loadProfile(username) {
     loadUserPosts(username);
 }
 
-function loadUserPosts(username) {
+async function loadUserPosts(username) {
     const postsContainer = document.getElementById('profile-posts');
-    const posts = getPostsByUser(username);
+    const posts = await getPostsByUser(username);
     
     if (posts.length === 0) {
         postsContainer.innerHTML = '<p class="no-posts">No posts yet.</p>';
         return;
     }
     
-    postsContainer.innerHTML = posts.map(post => {
+    const postPromises = posts.map(async (post) => {
         const timestamp = formatTimestamp(post.timestamp);
         const imageHtml = post.image ? `<div class="post-image-container"><img src="${post.image}" alt="Post image" class="post-image"></div>` : '';
         const contentHtml = post.content ? `<div class="post-content">${escapeHtml(post.content)}</div>` : '';
-        const pfp = getProfilePicture(post.username);
+        const pfp = await getProfilePicture(post.username);
         const pfpHtml = pfp ? `<img src="${pfp}" alt="${post.username}" class="post-pfp">` : '<div class="post-pfp default-pfp"></div>';
         
         // Initialize post data if needed
@@ -163,8 +167,11 @@ function loadUserPosts(username) {
                 ${imageHtml}
             </div>
         `;
-    }).join('');
-}
+    });
+    
+    const postHtmls = await Promise.all(postPromises);
+    postsContainer.innerHTML = postHtmls.join('');
+    }
 
 function escapeHtml(text) {
     const div = document.createElement('div');

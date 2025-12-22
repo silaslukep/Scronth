@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (isIndex) {
         setupPostForm();
-        loadFeed();
+        loadFeed().catch(err => console.error('Error loading feed:', err));
         updateNav();
     }
 });
@@ -122,7 +122,7 @@ function setupPostForm() {
         imagePreview.style.display = 'none';
     });
     
-    form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const content = document.getElementById('post-content').value.trim();
@@ -134,7 +134,7 @@ function setupPostForm() {
             return;
         }
         
-        const result = createPost(getCurrentUser(), content, imageData);
+        const result = await createPost(getCurrentUser(), content, imageData);
         
         if (result.success) {
             document.getElementById('post-content').value = '';
@@ -145,7 +145,7 @@ function setupPostForm() {
             
             // Immediately reload feed to show new post
             console.log('Post created! Reloading feed...');
-            loadFeed();
+            await loadFeed();
         } else {
             errorDiv.textContent = result.message;
             errorDiv.style.display = 'block';
@@ -153,7 +153,7 @@ function setupPostForm() {
     });
 }
 
-function loadFeed() {
+async function loadFeed() {
     const feed = document.getElementById('posts-feed');
     if (!feed) {
         console.error('Posts feed element not found!');
@@ -162,8 +162,9 @@ function loadFeed() {
     
     // Load feed for EVERYONE - posts are 100% PUBLIC!
     // No login required to view posts - THIS IS A REAL PUBLIC SYSTEM
+    // Posts are stored in Firebase cloud - visible to ALL users across all devices!
     try {
-        const allPosts = getAllPosts();
+        const allPosts = await getAllPosts();
         console.log('ALL POSTS FROM STORAGE:', allPosts);
         
         const visiblePosts = allPosts.filter(post => {
@@ -174,6 +175,7 @@ function loadFeed() {
         
         console.log('PUBLIC FEED LOADING - Total posts:', allPosts.length, 'Visible posts:', visiblePosts.length);
         console.log('Posts are PUBLIC - visible to everyone, no login required!');
+        console.log('Posts stored in cloud - visible across all devices and browsers!');
         console.log('Visible posts:', visiblePosts);
         
         if (visiblePosts.length === 0) {
@@ -184,88 +186,92 @@ function loadFeed() {
         const currentUser = isLoggedIn() ? getCurrentUser() : null;
         const isCurrentUserAdmin = currentUser && isAdmin(currentUser);
         
-        feed.innerHTML = visiblePosts.map(post => {
+        // Process posts asynchronously
+        const postPromises = visiblePosts.map(async (post) => {
             // Track view for everyone
             if (post && post.id) {
                 try {
-                    incrementViews(post.id);
+                    await incrementViews(post.id);
                 } catch (e) {
                     console.error('Error incrementing views:', e);
                 }
             }
         
-        const timestamp = post.timestamp ? formatTimestamp(post.timestamp) : 'recently';
-        const imageHtml = post.image ? `<div class="post-image-container"><img src="${post.image}" alt="Post image" class="post-image"></div>` : '';
-        const pfp = getProfilePicture(post.username);
-        const pfpHtml = pfp ? `<img src="${pfp}" alt="${post.username}" class="post-pfp">` : '<div class="post-pfp default-pfp"></div>';
+            const timestamp = post.timestamp ? formatTimestamp(post.timestamp) : 'recently';
+            const imageHtml = post.image ? `<div class="post-image-container"><img src="${post.image}" alt="Post image" class="post-image"></div>` : '';
+            const pfp = await getProfilePicture(post.username);
+            const pfpHtml = pfp ? `<img src="${pfp}" alt="${post.username}" class="post-pfp">` : '<div class="post-pfp default-pfp"></div>';
+            
+            // Split content into title and body if it has multiple lines
+            const contentLines = post.content ? post.content.split('\n') : [];
+            const title = contentLines[0] || '';
+            const body = contentLines.slice(1).join('\n') || '';
+            
+            // Get engagement counts
+            const likes = post.likes ? post.likes.length : 0;
+            const replies = post.replies ? post.replies.length : 0;
+            const views = post.views || 0;
+            const hasLikedPost = currentUser && await hasLiked(post.id, currentUser);
         
-        // Split content into title and body if it has multiple lines
-        const contentLines = post.content ? post.content.split('\n') : [];
-        const title = contentLines[0] || '';
-        const body = contentLines.slice(1).join('\n') || '';
-        
-        // Get engagement counts
-        const likes = post.likes ? post.likes.length : 0;
-        const replies = post.replies ? post.replies.length : 0;
-        const views = post.views || 0;
-        const hasLikedPost = currentUser && hasLiked(post.id, currentUser);
-        
-        const adminControls = isCurrentUserAdmin ? `
-            <div class="admin-controls">
-                <button class="admin-delete-post-btn" data-post-id="${post.id}" title="Delete this post">🗑️</button>
-                <button class="admin-delete-user-btn" data-username="${post.username}" title="Delete this user">👤🗑️</button>
-            </div>
-        ` : '';
-        
-        const likeClass = hasLikedPost ? 'liked' : '';
-        const likeButton = currentUser ? `<button class="like-btn ${likeClass}" data-post-id="${post.id}">👍</button>` : '<span class="engagement-icon">👍</span>';
-        const replyButton = currentUser ? `<button class="reply-btn" data-post-id="${post.id}">💬</button>` : '<span class="engagement-icon">💬</span>';
-        
-        return `
-            <div class="post-card" data-post-id="${post.id}">
-                <div class="post-header-new">
-                    ${pfpHtml}
-                    <div class="post-user-details">
-                        <a href="profile.html?user=${post.username}" class="post-username-new">${post.username}</a>
-                        ${title ? `<div class="post-title">${escapeHtml(title)}</div>` : ''}
-                    </div>
-                    ${adminControls}
+            const adminControls = isCurrentUserAdmin ? `
+                <div class="admin-controls">
+                    <button class="admin-delete-post-btn" data-post-id="${post.id}" title="Delete this post">🗑️</button>
+                    <button class="admin-delete-user-btn" data-username="${post.username}" title="Delete this user">👤🗑️</button>
                 </div>
-                ${body ? `<div class="post-body-text">${escapeHtml(body)}</div>` : ''}
-                ${imageHtml}
-                <div class="post-engagement">
-                    <div class="engagement-item like-item">
-                        ${likeButton}
-                        <span class="engagement-count like-count">${formatNumber(likes)}</span>
+            ` : '';
+            
+            const likeClass = hasLikedPost ? 'liked' : '';
+            const likeButton = currentUser ? `<button class="like-btn ${likeClass}" data-post-id="${post.id}">👍</button>` : '<span class="engagement-icon">👍</span>';
+            const replyButton = currentUser ? `<button class="reply-btn" data-post-id="${post.id}">💬</button>` : '<span class="engagement-icon">💬</span>';
+            
+            return `
+                <div class="post-card" data-post-id="${post.id}">
+                    <div class="post-header-new">
+                        ${pfpHtml}
+                        <div class="post-user-details">
+                            <a href="profile.html?user=${post.username}" class="post-username-new">${post.username}</a>
+                            ${title ? `<div class="post-title">${escapeHtml(title)}</div>` : ''}
+                        </div>
+                        ${adminControls}
                     </div>
-                    <div class="engagement-item reply-item">
-                        ${replyButton}
-                        <span class="engagement-count reply-count">${formatNumber(replies)}</span>
+                    ${body ? `<div class="post-body-text">${escapeHtml(body)}</div>` : ''}
+                    ${imageHtml}
+                    <div class="post-engagement">
+                        <div class="engagement-item like-item">
+                            ${likeButton}
+                            <span class="engagement-count like-count">${formatNumber(likes)}</span>
+                        </div>
+                        <div class="engagement-item reply-item">
+                            ${replyButton}
+                            <span class="engagement-count reply-count">${formatNumber(replies)}</span>
+                        </div>
+                        <div class="engagement-item">
+                            <span class="engagement-count">${formatNumber(views)}</span>
+                            <span class="engagement-icon">👁</span>
+                        </div>
                     </div>
-                    <div class="engagement-item">
-                        <span class="engagement-count">${formatNumber(views)}</span>
-                        <span class="engagement-icon">👁</span>
-                    </div>
+                    <div class="replies-container" id="replies-${post.id}" style="display: none;"></div>
+                    ${currentUser ? `
+                        <div class="reply-form-container" id="reply-form-${post.id}" style="display: none;">
+                            <textarea class="reply-input" placeholder="Write a reply..." rows="2"></textarea>
+                            <button class="reply-submit-btn" data-post-id="${post.id}">Reply</button>
+                        </div>
+                    ` : ''}
                 </div>
-                <div class="replies-container" id="replies-${post.id}" style="display: none;"></div>
-                ${currentUser ? `
-                    <div class="reply-form-container" id="reply-form-${post.id}" style="display: none;">
-                        <textarea class="reply-input" placeholder="Write a reply..." rows="2"></textarea>
-                        <button class="reply-submit-btn" data-post-id="${post.id}">Reply</button>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    }).join('');
+            `;
+        });
+        
+        const postHtmls = await Promise.all(postPromises);
+        feed.innerHTML = postHtmls.join('');
     
     // Setup admin delete post buttons
     if (isCurrentUserAdmin) {
         document.querySelectorAll('.admin-delete-post-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', async function() {
                 const postId = this.dataset.postId;
                 if (confirm('Are you sure you want to DELETE this post permanently? This cannot be undone.')) {
-                    if (deletePost(postId)) {
-                        loadFeed();
+                    if (await deletePost(postId)) {
+                        await loadFeed();
                     }
                 }
             });
@@ -273,16 +279,16 @@ function loadFeed() {
         
         // Setup admin delete user buttons
         document.querySelectorAll('.admin-delete-user-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', async function() {
                 const username = this.dataset.username;
                 if (username === 'silas.palmer' || username === 'Scronth') {
                     alert('Cannot delete admin accounts');
                     return;
                 }
                 if (confirm(`Are you sure you want to DELETE the user "${username}" permanently? This will delete their account, all their posts, and cannot be undone.`)) {
-                    if (deleteUser(username)) {
+                    if (await deleteUser(username)) {
                         alert(`User "${username}" has been deleted.`);
-                        loadFeed();
+                        await loadFeed();
                     }
                 }
             });
@@ -291,25 +297,25 @@ function loadFeed() {
     
     // Setup like buttons
     document.querySelectorAll('.like-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', async function() {
             const postId = this.dataset.postId;
             const currentUser = getCurrentUser();
-            if (toggleLike(postId, currentUser)) {
-                loadFeed();
+            if (await toggleLike(postId, currentUser)) {
+                await loadFeed();
             }
         });
     });
     
     // Setup reply buttons
     document.querySelectorAll('.reply-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', async function() {
             const postId = this.dataset.postId;
             const replyForm = document.getElementById(`reply-form-${postId}`);
             const repliesContainer = document.getElementById(`replies-${postId}`);
             
             if (replyForm.style.display === 'none') {
                 replyForm.style.display = 'block';
-                loadReplies(postId);
+                await loadReplies(postId);
                 repliesContainer.style.display = 'block';
             } else {
                 replyForm.style.display = 'none';
@@ -320,7 +326,7 @@ function loadFeed() {
     
     // Setup reply submit buttons
     document.querySelectorAll('.reply-submit-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', async function() {
             const postId = this.dataset.postId;
             const replyInput = this.previousElementSibling;
             const content = replyInput.value.trim();
@@ -328,9 +334,9 @@ function loadFeed() {
             if (!content) return;
             
             const currentUser = getCurrentUser();
-            if (addReply(postId, currentUser, content)) {
+            if (await addReply(postId, currentUser, content)) {
                 replyInput.value = '';
-                loadFeed();
+                await loadFeed();
             }
         });
     });
@@ -341,19 +347,19 @@ function loadFeed() {
     }
 }
 
-function loadReplies(postId) {
+async function loadReplies(postId) {
     const repliesContainer = document.getElementById(`replies-${postId}`);
     if (!repliesContainer) return;
     
-    const replies = getReplies(postId);
+    const replies = await getReplies(postId);
     if (replies.length === 0) {
         repliesContainer.innerHTML = '<div class="no-replies">No replies yet.</div>';
         return;
     }
     
-    repliesContainer.innerHTML = replies.map(reply => {
+    const replyPromises = replies.map(async (reply) => {
         const timestamp = formatTimestamp(reply.timestamp);
-        const pfp = getProfilePicture(reply.username);
+        const pfp = await getProfilePicture(reply.username);
         const pfpHtml = pfp ? `<img src="${pfp}" alt="${reply.username}" class="reply-pfp">` : '<div class="reply-pfp default-pfp"></div>';
         
         return `
@@ -366,7 +372,10 @@ function loadReplies(postId) {
                 </div>
             </div>
         `;
-    }).join('');
+    });
+    
+    const replyHtmls = await Promise.all(replyPromises);
+    repliesContainer.innerHTML = replyHtmls.join('');
 }
 
 function escapeHtml(text) {
