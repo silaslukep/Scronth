@@ -145,6 +145,11 @@ function loadUserPosts(username) {
         const contentHtml = post.content ? `<div class="post-content">${escapeHtml(post.content)}</div>` : '';
         const pfp = getProfilePicture(post.username);
         const pfpHtml = pfp ? `<img src="${pfp}" alt="${post.username}" class="post-pfp">` : '<div class="post-pfp default-pfp"></div>';
+        
+        // Initialize post data if needed
+        if (!post.likes) post.likes = [];
+        if (!post.replies) post.replies = [];
+        if (!post.views) post.views = 0;
         return `
             <div class="post-item">
                 <div class="post-header">

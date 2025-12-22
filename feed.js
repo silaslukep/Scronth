@@ -154,26 +154,64 @@ function loadFeed() {
     const isCurrentUserAdmin = currentUser && isAdmin(currentUser);
     
     feed.innerHTML = visiblePosts.map(post => {
+        // Track view
+        incrementViews(post.id);
+        
         const timestamp = formatTimestamp(post.timestamp);
         const imageHtml = post.image ? `<div class="post-image-container"><img src="${post.image}" alt="Post image" class="post-image"></div>` : '';
-        const contentHtml = post.content ? `<div class="post-content">${escapeHtml(post.content)}</div>` : '';
         const pfp = getProfilePicture(post.username);
         const pfpHtml = pfp ? `<img src="${pfp}" alt="${post.username}" class="post-pfp">` : '<div class="post-pfp default-pfp"></div>';
+        
+        // Split content into title and body if it has multiple lines
+        const contentLines = post.content ? post.content.split('\n') : [];
+        const title = contentLines[0] || '';
+        const body = contentLines.slice(1).join('\n') || '';
+        
+        // Get engagement counts
+        const likes = post.likes ? post.likes.length : 0;
+        const replies = post.replies ? post.replies.length : 0;
+        const views = post.views || 0;
+        const hasLikedPost = currentUser && hasLiked(post.id, currentUser);
+        
         const adminControls = isCurrentUserAdmin ? `<button class="ban-post-btn" data-post-id="${post.id}" title="Ban this post">×</button>` : '';
+        
+        const likeClass = hasLikedPost ? 'liked' : '';
+        const likeButton = currentUser ? `<button class="like-btn ${likeClass}" data-post-id="${post.id}">👍</button>` : '<span class="engagement-icon">👍</span>';
+        const replyButton = currentUser ? `<button class="reply-btn" data-post-id="${post.id}">💬</button>` : '<span class="engagement-icon">💬</span>';
+        
         return `
-            <div class="post-item">
-                <div class="post-header">
-                    <div class="post-user-info">
-                        ${pfpHtml}
-                        <a href="profile.html?user=${post.username}" class="post-username">${post.username}</a>
+            <div class="post-card" data-post-id="${post.id}">
+                <div class="post-header-new">
+                    ${pfpHtml}
+                    <div class="post-user-details">
+                        <a href="profile.html?user=${post.username}" class="post-username-new">${post.username}</a>
+                        ${title ? `<div class="post-title">${escapeHtml(title)}</div>` : ''}
                     </div>
-                    <div class="post-header-right">
-                        <span class="post-time">${timestamp}</span>
-                        ${adminControls}
+                    ${adminControls}
+                </div>
+                ${body ? `<div class="post-body-text">${escapeHtml(body)}</div>` : ''}
+                ${imageHtml}
+                <div class="post-engagement">
+                    <div class="engagement-item like-item">
+                        ${likeButton}
+                        <span class="engagement-count like-count">${formatNumber(likes)}</span>
+                    </div>
+                    <div class="engagement-item reply-item">
+                        ${replyButton}
+                        <span class="engagement-count reply-count">${formatNumber(replies)}</span>
+                    </div>
+                    <div class="engagement-item">
+                        <span class="engagement-count">${formatNumber(views)}</span>
+                        <span class="engagement-icon">👁</span>
                     </div>
                 </div>
-                ${contentHtml}
-                ${imageHtml}
+                <div class="replies-container" id="replies-${post.id}" style="display: none;"></div>
+                ${currentUser ? `
+                    <div class="reply-form-container" id="reply-form-${post.id}" style="display: none;">
+                        <textarea class="reply-input" placeholder="Write a reply..." rows="2"></textarea>
+                        <button class="reply-submit-btn" data-post-id="${post.id}">Reply</button>
+                    </div>
+                ` : ''}
             </div>
         `;
     }).join('');
@@ -191,6 +229,80 @@ function loadFeed() {
             });
         });
     }
+    
+    // Setup like buttons
+    document.querySelectorAll('.like-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const currentUser = getCurrentUser();
+            if (toggleLike(postId, currentUser)) {
+                loadFeed();
+            }
+        });
+    });
+    
+    // Setup reply buttons
+    document.querySelectorAll('.reply-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const replyForm = document.getElementById(`reply-form-${postId}`);
+            const repliesContainer = document.getElementById(`replies-${postId}`);
+            
+            if (replyForm.style.display === 'none') {
+                replyForm.style.display = 'block';
+                loadReplies(postId);
+                repliesContainer.style.display = 'block';
+            } else {
+                replyForm.style.display = 'none';
+                repliesContainer.style.display = 'none';
+            }
+        });
+    });
+    
+    // Setup reply submit buttons
+    document.querySelectorAll('.reply-submit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const replyInput = this.previousElementSibling;
+            const content = replyInput.value.trim();
+            
+            if (!content) return;
+            
+            const currentUser = getCurrentUser();
+            if (addReply(postId, currentUser, content)) {
+                replyInput.value = '';
+                loadFeed();
+            }
+        });
+    });
+}
+
+function loadReplies(postId) {
+    const repliesContainer = document.getElementById(`replies-${postId}`);
+    if (!repliesContainer) return;
+    
+    const replies = getReplies(postId);
+    if (replies.length === 0) {
+        repliesContainer.innerHTML = '<div class="no-replies">No replies yet.</div>';
+        return;
+    }
+    
+    repliesContainer.innerHTML = replies.map(reply => {
+        const timestamp = formatTimestamp(reply.timestamp);
+        const pfp = getProfilePicture(reply.username);
+        const pfpHtml = pfp ? `<img src="${pfp}" alt="${reply.username}" class="reply-pfp">` : '<div class="reply-pfp default-pfp"></div>';
+        
+        return `
+            <div class="reply-item">
+                ${pfpHtml}
+                <div class="reply-content">
+                    <a href="profile.html?user=${reply.username}" class="reply-username">${reply.username}</a>
+                    <div class="reply-text">${escapeHtml(reply.content)}</div>
+                    <div class="reply-time">${timestamp}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function escapeHtml(text) {

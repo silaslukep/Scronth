@@ -58,7 +58,10 @@ function createPost(username, content, imageData = null) {
         content: content || '',
         image: imageData || null,
         timestamp: new Date().toISOString(),
-        blocked: false
+        blocked: false,
+        likes: [],
+        replies: [],
+        views: 0
     };
     
     posts.unshift(newPost); // Add to beginning
@@ -314,5 +317,86 @@ function setProfileMessage(username, message) {
 function getProfileMessage(username) {
     const profile = getUserProfile(username);
     return profile.adminMessage || null;
+}
+
+// Like/Unlike a post
+function toggleLike(postId, username) {
+    if (!username) return false;
+    
+    const posts = getAllPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post) return false;
+    
+    // Initialize if needed
+    if (!post.likes) post.likes = [];
+    
+    const index = post.likes.indexOf(username);
+    if (index > -1) {
+        post.likes.splice(index, 1); // Unlike
+    } else {
+        post.likes.push(username); // Like
+    }
+    
+    savePosts(posts);
+    return true;
+}
+
+// Check if user liked a post
+function hasLiked(postId, username) {
+    if (!username) return false;
+    const posts = getAllPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post || !post.likes) return false;
+    return post.likes.includes(username);
+}
+
+// Add reply to post
+function addReply(postId, username, content) {
+    if (!username || !content.trim()) return false;
+    
+    const posts = getAllPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post) return false;
+    
+    // Initialize if needed
+    if (!post.replies) post.replies = [];
+    
+    const reply = {
+        id: Date.now().toString(),
+        username: username,
+        content: content.trim(),
+        timestamp: new Date().toISOString()
+    };
+    
+    post.replies.push(reply);
+    savePosts(posts);
+    return true;
+}
+
+// Get replies for a post
+function getReplies(postId) {
+    const posts = getAllPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post || !post.replies) return [];
+    return post.replies;
+}
+
+// Increment view count for a post
+function incrementViews(postId) {
+    const posts = getAllPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    
+    if (!post.views) post.views = 0;
+    post.views++;
+    savePosts(posts);
+}
+
+// Format number (e.g., 15000 -> 15K)
+function formatNumber(num) {
+    if (num >= 1000) {
+        return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+    }
+    return num.toString();
 }
 
