@@ -152,23 +152,33 @@ function setupPostForm() {
 
 function loadFeed() {
     const feed = document.getElementById('posts-feed');
-    if (!feed) return;
-    
-    // Load feed for everyone - posts are public!
-    const allPosts = getAllPosts();
-    const visiblePosts = allPosts.filter(post => !post.blocked);
-    
-    if (visiblePosts.length === 0) {
-        feed.innerHTML = '<p class="no-posts">No posts yet. Be the first to post!</p>';
+    if (!feed) {
+        console.error('Posts feed element not found!');
         return;
     }
     
-    const currentUser = isLoggedIn() ? getCurrentUser() : null;
-    const isCurrentUserAdmin = currentUser && isAdmin(currentUser);
-    
-    feed.innerHTML = visiblePosts.map(post => {
-        // Track view
-        incrementViews(post.id);
+    // Load feed for EVERYONE - posts are 100% PUBLIC!
+    // No login required to view posts - THIS IS A REAL PUBLIC SYSTEM
+    try {
+        const allPosts = getAllPosts();
+        const visiblePosts = allPosts.filter(post => post && !post.blocked);
+        
+        console.log('PUBLIC FEED LOADING - Total posts:', allPosts.length, 'Visible posts:', visiblePosts.length);
+        console.log('Posts are PUBLIC - visible to everyone, no login required!');
+        
+        if (visiblePosts.length === 0) {
+            feed.innerHTML = '<p class="no-posts">No posts yet. Be the first to post!</p>';
+            return;
+        }
+        
+        const currentUser = isLoggedIn() ? getCurrentUser() : null;
+        const isCurrentUserAdmin = currentUser && isAdmin(currentUser);
+        
+        feed.innerHTML = visiblePosts.map(post => {
+            // Track view for everyone
+            if (post.id) {
+                incrementViews(post.id);
+            }
         
         const timestamp = formatTimestamp(post.timestamp);
         const imageHtml = post.image ? `<div class="post-image-container"><img src="${post.image}" alt="Post image" class="post-image"></div>` : '';
@@ -310,6 +320,11 @@ function loadFeed() {
             }
         });
     });
+    
+    } catch (error) {
+        console.error('Error loading feed:', error);
+        feed.innerHTML = '<p class="no-posts">Error loading posts. Please refresh the page.</p>';
+    }
 }
 
 function loadReplies(postId) {
