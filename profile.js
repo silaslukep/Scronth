@@ -9,9 +9,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    loadProfile(profileUser).then(() => {
-        loadUserPosts(profileUser);
-    }).catch(err => console.error('Error loading profile:', err));
+    loadProfile(profileUser);
+    loadUserPosts(profileUser);
     updateNav();
 });
 
@@ -124,9 +123,8 @@ function loadProfile(username) {
                 followBtn.textContent = 'Unfollow';
                 followBtn.dataset.following = 'true';
             }
-            loadProfile(username).then(() => {
-                loadUserPosts(username);
-            }); // Reload to update stats
+            loadProfile(username);
+            loadUserPosts(username); // Reload to update stats
         });
     }
     
@@ -134,20 +132,20 @@ function loadProfile(username) {
     loadUserPosts(username);
 }
 
-async function loadUserPosts(username) {
+function loadUserPosts(username) {
     const postsContainer = document.getElementById('profile-posts');
-    const posts = await getPostsByUser(username);
+    const posts = getPostsByUser(username);
     
     if (posts.length === 0) {
         postsContainer.innerHTML = '<p class="no-posts">No posts yet.</p>';
         return;
     }
     
-    const postPromises = posts.map(async (post) => {
+    postsContainer.innerHTML = posts.map(post => {
         const timestamp = formatTimestamp(post.timestamp);
         const imageHtml = post.image ? `<div class="post-image-container"><img src="${post.image}" alt="Post image" class="post-image"></div>` : '';
         const contentHtml = post.content ? `<div class="post-content">${escapeHtml(post.content)}</div>` : '';
-        const pfp = await getProfilePicture(post.username);
+        const pfp = getProfilePicture(post.username);
         const pfpHtml = pfp ? `<img src="${pfp}" alt="${post.username}" class="post-pfp">` : '<div class="post-pfp default-pfp"></div>';
         
         // Initialize post data if needed
@@ -167,11 +165,8 @@ async function loadUserPosts(username) {
                 ${imageHtml}
             </div>
         `;
-    });
-    
-    const postHtmls = await Promise.all(postPromises);
-    postsContainer.innerHTML = postHtmls.join('');
-    }
+    }).join('');
+}
 
 function escapeHtml(text) {
     const div = document.createElement('div');

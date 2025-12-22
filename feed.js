@@ -6,13 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (isIndex) {
         setupPostForm();
-        loadFeed().catch(err => {
-            console.error('Error loading feed:', err);
-            const feed = document.getElementById('posts-feed');
-            if (feed) {
-                feed.innerHTML = '<p class="no-posts">Error loading posts: ' + (err.message || 'Unknown error') + '. Please check the console and refresh.</p>';
-            }
-        });
+        loadFeed();
         updateNav();
     }
 });
@@ -128,7 +122,7 @@ function setupPostForm() {
         imagePreview.style.display = 'none';
     });
     
-    form.addEventListener('submit', async function(e) {
+    form.addEventListener('submit', function(e) {
         e.preventDefault();
         
         const content = document.getElementById('post-content').value.trim();
@@ -140,7 +134,7 @@ function setupPostForm() {
             return;
         }
         
-        const result = await createPost(getCurrentUser(), content, imageData);
+        const result = createPost(getCurrentUser(), content, imageData);
         
         if (result.success) {
             document.getElementById('post-content').value = '';
@@ -151,7 +145,7 @@ function setupPostForm() {
             
             // Immediately reload feed to show new post
             console.log('Post created! Reloading feed...');
-            await loadFeed();
+            loadFeed();
         } else {
             errorDiv.textContent = result.message;
             errorDiv.style.display = 'block';
@@ -159,7 +153,7 @@ function setupPostForm() {
     });
 }
 
-async function loadFeed() {
+function loadFeed() {
     const feed = document.getElementById('posts-feed');
     if (!feed) {
         console.error('Posts feed element not found!');
@@ -168,9 +162,9 @@ async function loadFeed() {
     
     // Load feed for EVERYONE - posts are 100% PUBLIC!
     // No login required to view posts - THIS IS A REAL PUBLIC SYSTEM
-    // Posts are stored in Firebase cloud (if configured) or localStorage
+    // Posts are stored in localStorage
     try {
-        const allPosts = await getAllPosts();
+        const allPosts = getAllPosts();
         console.log('ALL POSTS FROM STORAGE:', allPosts);
         
         if (!Array.isArray(allPosts)) {
@@ -196,20 +190,20 @@ async function loadFeed() {
         const currentUser = isLoggedIn() ? getCurrentUser() : null;
         const isCurrentUserAdmin = currentUser && isAdmin(currentUser);
         
-        // Process posts asynchronously
-        const postPromises = visiblePosts.map(async (post) => {
+        // Process posts
+        feed.innerHTML = visiblePosts.map(post => {
             // Track view for everyone
             if (post && post.id) {
                 try {
-                    await incrementViews(post.id);
+                    incrementViews(post.id);
                 } catch (e) {
                     console.error('Error incrementing views:', e);
                 }
             }
-        
+            
             const timestamp = post.timestamp ? formatTimestamp(post.timestamp) : 'recently';
             const imageHtml = post.image ? `<div class="post-image-container"><img src="${post.image}" alt="Post image" class="post-image"></div>` : '';
-            const pfp = await getProfilePicture(post.username);
+            const pfp = getProfilePicture(post.username);
             const pfpHtml = pfp ? `<img src="${pfp}" alt="${post.username}" class="post-pfp">` : '<div class="post-pfp default-pfp"></div>';
             
             // Split content into title and body if it has multiple lines
@@ -221,7 +215,7 @@ async function loadFeed() {
             const likes = post.likes ? post.likes.length : 0;
             const replies = post.replies ? post.replies.length : 0;
             const views = post.views || 0;
-            const hasLikedPost = currentUser && await hasLiked(post.id, currentUser);
+            const hasLikedPost = currentUser && hasLiked(post.id, currentUser);
         
             const adminControls = isCurrentUserAdmin ? `
                 <div class="admin-controls">
@@ -269,19 +263,16 @@ async function loadFeed() {
                     ` : ''}
                 </div>
             `;
-        });
-        
-        const postHtmls = await Promise.all(postPromises);
-        feed.innerHTML = postHtmls.join('');
+        }).join('');
     
     // Setup admin delete post buttons
     if (isCurrentUserAdmin) {
         document.querySelectorAll('.admin-delete-post-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
+            btn.addEventListener('click', function() {
                 const postId = this.dataset.postId;
                 if (confirm('Are you sure you want to DELETE this post permanently? This cannot be undone.')) {
-                    if (await deletePost(postId)) {
-                        await loadFeed();
+                    if (deletePost(postId)) {
+                        loadFeed();
                     }
                 }
             });
@@ -289,16 +280,16 @@ async function loadFeed() {
         
         // Setup admin delete user buttons
         document.querySelectorAll('.admin-delete-user-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
+            btn.addEventListener('click', function() {
                 const username = this.dataset.username;
                 if (username === 'silas.palmer' || username === 'Scronth') {
                     alert('Cannot delete admin accounts');
                     return;
                 }
                 if (confirm(`Are you sure you want to DELETE the user "${username}" permanently? This will delete their account, all their posts, and cannot be undone.`)) {
-                    if (await deleteUser(username)) {
+                    if (deleteUser(username)) {
                         alert(`User "${username}" has been deleted.`);
-                        await loadFeed();
+                        loadFeed();
                     }
                 }
             });
@@ -307,25 +298,25 @@ async function loadFeed() {
     
     // Setup like buttons
     document.querySelectorAll('.like-btn').forEach(btn => {
-        btn.addEventListener('click', async function() {
+        btn.addEventListener('click', function() {
             const postId = this.dataset.postId;
             const currentUser = getCurrentUser();
-            if (await toggleLike(postId, currentUser)) {
-                await loadFeed();
+            if (toggleLike(postId, currentUser)) {
+                loadFeed();
             }
         });
     });
     
     // Setup reply buttons
     document.querySelectorAll('.reply-btn').forEach(btn => {
-        btn.addEventListener('click', async function() {
+        btn.addEventListener('click', function() {
             const postId = this.dataset.postId;
             const replyForm = document.getElementById(`reply-form-${postId}`);
             const repliesContainer = document.getElementById(`replies-${postId}`);
             
             if (replyForm.style.display === 'none') {
                 replyForm.style.display = 'block';
-                await loadReplies(postId);
+                loadReplies(postId);
                 repliesContainer.style.display = 'block';
             } else {
                 replyForm.style.display = 'none';
@@ -336,7 +327,7 @@ async function loadFeed() {
     
     // Setup reply submit buttons
     document.querySelectorAll('.reply-submit-btn').forEach(btn => {
-        btn.addEventListener('click', async function() {
+        btn.addEventListener('click', function() {
             const postId = this.dataset.postId;
             const replyInput = this.previousElementSibling;
             const content = replyInput.value.trim();
@@ -344,9 +335,9 @@ async function loadFeed() {
             if (!content) return;
             
             const currentUser = getCurrentUser();
-            if (await addReply(postId, currentUser, content)) {
+            if (addReply(postId, currentUser, content)) {
                 replyInput.value = '';
-                await loadFeed();
+                loadFeed();
             }
         });
     });
@@ -358,19 +349,19 @@ async function loadFeed() {
     }
 }
 
-async function loadReplies(postId) {
+function loadReplies(postId) {
     const repliesContainer = document.getElementById(`replies-${postId}`);
     if (!repliesContainer) return;
     
-    const replies = await getReplies(postId);
+    const replies = getReplies(postId);
     if (replies.length === 0) {
         repliesContainer.innerHTML = '<div class="no-replies">No replies yet.</div>';
         return;
     }
     
-    const replyPromises = replies.map(async (reply) => {
+    repliesContainer.innerHTML = replies.map(reply => {
         const timestamp = formatTimestamp(reply.timestamp);
-        const pfp = await getProfilePicture(reply.username);
+        const pfp = getProfilePicture(reply.username);
         const pfpHtml = pfp ? `<img src="${pfp}" alt="${reply.username}" class="reply-pfp">` : '<div class="reply-pfp default-pfp"></div>';
         
         return `
@@ -383,10 +374,7 @@ async function loadReplies(postId) {
                 </div>
             </div>
         `;
-    });
-    
-    const replyHtmls = await Promise.all(replyPromises);
-    repliesContainer.innerHTML = replyHtmls.join('');
+    }).join('');
 }
 
 function escapeHtml(text) {

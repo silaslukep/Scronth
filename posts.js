@@ -25,29 +25,21 @@ function filterContent(text) {
     return { blocked: false };
 }
 
-// Get all posts - uses Firebase if available, falls back to localStorage
-async function getAllPosts() {
-    // Try Firebase first (cloud storage - visible to all users)
-    if (isFirebaseAvailable()) {
-        try {
-            const snapshot = await db.collection('posts').orderBy('timestamp', 'desc').get();
-            const posts = [];
-            snapshot.forEach(doc => {
-                posts.push({ id: doc.id, ...doc.data() });
-            });
-            console.log('Loaded posts from Firebase (cloud storage - visible to all users):', posts.length);
-            return posts;
-        } catch (error) {
-            console.error('Error loading from Firebase:', error);
-            console.log('Falling back to localStorage');
-            // Fall back to localStorage
-        }
-    }
-    
-    // Fallback to localStorage (browser-specific)
+// Get all posts - uses localStorage (Firebase disabled for now)
+function getAllPosts() {
     try {
         const postsData = localStorage.getItem('scronth_posts');
-        const posts = postsData ? JSON.parse(postsData) : [];
+        if (!postsData) {
+            console.log('No posts found in localStorage');
+            return [];
+        }
+        const posts = JSON.parse(postsData);
+        // Sort by timestamp descending (newest first)
+        posts.sort((a, b) => {
+            const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            return timeB - timeA;
+        });
         console.log('Loaded posts from localStorage:', posts.length);
         return posts;
     } catch (error) {
@@ -56,41 +48,18 @@ async function getAllPosts() {
     }
 }
 
-// Save posts - uses Firebase if available, falls back to localStorage
-async function savePosts(posts) {
-    // Try Firebase first (cloud storage - visible to all users)
-    if (isFirebaseAvailable()) {
-        try {
-            // Save each post to Firebase
-            const batch = db.batch();
-            posts.forEach(post => {
-                const postRef = db.collection('posts').doc(post.id);
-                batch.set(postRef, {
-                    username: post.username,
-                    content: post.content,
-                    image: post.image,
-                    timestamp: post.timestamp || new Date().toISOString(),
-                    blocked: post.blocked || false,
-                    likes: post.likes || [],
-                    replies: post.replies || [],
-                    views: post.views || 0
-                });
-            });
-            await batch.commit();
-            console.log('Saved posts to Firebase (cloud storage - visible to all users)');
-            return;
-        } catch (error) {
-            console.error('Error saving to Firebase:', error);
-            // Fall back to localStorage
-        }
+// Save posts - uses localStorage
+function savePosts(posts) {
+    try {
+        localStorage.setItem('scronth_posts', JSON.stringify(posts));
+        console.log('Saved posts to localStorage:', posts.length);
+    } catch (error) {
+        console.error('Error saving to localStorage:', error);
     }
-    
-    // Fallback to localStorage
-    localStorage.setItem('scronth_posts', JSON.stringify(posts));
 }
 
 // Create a new post
-async function createPost(username, content, imageData = null) {
+function createPost(username, content, imageData = null) {
     // Only filter text content if there is text
     if (content && content.trim()) {
         const filterResult = filterContent(content);
@@ -116,37 +85,15 @@ async function createPost(username, content, imageData = null) {
         views: 0
     };
     
-    // Save to Firebase (cloud) if available - makes it visible to ALL users
-    if (isFirebaseAvailable()) {
-        try {
-            await db.collection('posts').doc(newPost.id).set({
-                username: newPost.username,
-                content: newPost.content,
-                image: newPost.image,
-                timestamp: newPost.timestamp,
-                blocked: newPost.blocked,
-                likes: newPost.likes,
-                replies: newPost.replies,
-                views: newPost.views
-            });
-            console.log('Post saved to Firebase cloud storage - visible to ALL users!');
-        } catch (error) {
-            console.error('Error saving to Firebase:', error);
-            // Fall back to localStorage
-            const posts = await getAllPosts();
-            posts.unshift(newPost);
-            await savePosts(posts);
-        }
-    } else {
-        // Fallback to localStorage
-        const posts = await getAllPosts();
-        posts.unshift(newPost);
-        await savePosts(posts);
-    }
+    // Save to localStorage
+    const posts = getAllPosts();
+    posts.unshift(newPost); // Add to beginning
+    savePosts(posts);
     
     // Update user's post count
     updateUserPostCount(username);
     
+    console.log('Post created successfully:', newPost.id);
     return { success: true, post: newPost };
 }
 
@@ -237,45 +184,16 @@ function banPost(postId) {
 }
 
 // Delete a post permanently
-async function deletePost(postId) {
-    if (isFirebaseAvailable()) {
-        try {
-            await db.collection('posts').doc(postId).delete();
-            console.log('Post deleted from Firebase');
-            return true;
-        } catch (error) {
-            console.error('Error deleting post from Firebase:', error);
-        }
-    }
-    
-    const posts = await getAllPosts();
+function deletePost(postId) {
+    const posts = getAllPosts();
     const filteredPosts = posts.filter(p => p.id !== postId);
-    await savePosts(filteredPosts);
+    savePosts(filteredPosts);
     return true;
 }
 
 // Delete a user account permanently
-async function deleteUser(username) {
+function deleteUser(username) {
     if (username === 'silas.palmer' || username === 'Scronth') return false; // Can't delete admins
-    
-    if (isFirebaseAvailable()) {
-        try {
-            // Delete all posts by this user from Firebase
-            const postsSnapshot = await db.collection('posts').where('username', '==', username).get();
-            const batch = db.batch();
-            postsSnapshot.forEach(doc => {
-                batch.delete(doc.ref);
-            });
-            await batch.commit();
-            
-            // Delete profile
-            await db.collection('profiles').doc(username).delete();
-            
-            console.log('User deleted from Firebase');
-        } catch (error) {
-            console.error('Error deleting user from Firebase:', error);
-        }
-    }
     
     // Remove from users
     const users = getUsers();
@@ -289,9 +207,9 @@ async function deleteUser(username) {
     localStorage.setItem('scronth_profiles', JSON.stringify(allProfiles));
     
     // Delete all their posts
-    const posts = await getAllPosts();
+    const posts = getAllPosts();
     const filteredPosts = posts.filter(p => p.username !== username);
-    await savePosts(filteredPosts);
+    savePosts(filteredPosts);
     
     // Remove from banned list if there
     const banned = localStorage.getItem('scronth_banned');
@@ -496,28 +414,16 @@ function toggleLike(postId, username) {
 }
 
 // Check if user liked a post
-async function hasLiked(postId, username) {
+function hasLiked(postId, username) {
     if (!username) return false;
-    
-    if (isFirebaseAvailable()) {
-        try {
-            const postDoc = await db.collection('posts').doc(postId).get();
-            if (!postDoc.exists) return false;
-            const post = postDoc.data();
-            return post.likes && post.likes.includes(username);
-        } catch (error) {
-            console.error('Error checking like in Firebase:', error);
-        }
-    }
-    
-    const posts = await getAllPosts();
+    const posts = getAllPosts();
     const post = posts.find(p => p.id === postId);
     if (!post || !post.likes) return false;
     return post.likes.includes(username);
 }
 
 // Add reply to post
-async function addReply(postId, username, content) {
+function addReply(postId, username, content) {
     if (!username || !content.trim()) return false;
     
     const reply = {
@@ -527,24 +433,7 @@ async function addReply(postId, username, content) {
         timestamp: new Date().toISOString()
     };
     
-    if (isFirebaseAvailable()) {
-        try {
-            const postRef = db.collection('posts').doc(postId);
-            const postDoc = await postRef.get();
-            if (!postDoc.exists) return false;
-            
-            const post = postDoc.data();
-            const replies = post.replies || [];
-            replies.push(reply);
-            
-            await postRef.update({ replies: replies });
-            return true;
-        } catch (error) {
-            console.error('Error adding reply in Firebase:', error);
-        }
-    }
-    
-    const posts = await getAllPosts();
+    const posts = getAllPosts();
     const post = posts.find(p => p.id === postId);
     if (!post) return false;
     
@@ -552,50 +441,27 @@ async function addReply(postId, username, content) {
     if (!post.replies) post.replies = [];
     
     post.replies.push(reply);
-    await savePosts(posts);
+    savePosts(posts);
     return true;
 }
 
 // Get replies for a post
-async function getReplies(postId) {
-    if (isFirebaseAvailable()) {
-        try {
-            const postDoc = await db.collection('posts').doc(postId).get();
-            if (!postDoc.exists) return [];
-            const post = postDoc.data();
-            return post.replies || [];
-        } catch (error) {
-            console.error('Error getting replies from Firebase:', error);
-        }
-    }
-    
-    const posts = await getAllPosts();
+function getReplies(postId) {
+    const posts = getAllPosts();
     const post = posts.find(p => p.id === postId);
     if (!post || !post.replies) return [];
     return post.replies;
 }
 
 // Increment view count for a post
-async function incrementViews(postId) {
-    if (isFirebaseAvailable()) {
-        try {
-            const postRef = db.collection('posts').doc(postId);
-            await postRef.update({
-                views: firebase.firestore.FieldValue.increment(1)
-            });
-            return;
-        } catch (error) {
-            console.error('Error incrementing views in Firebase:', error);
-        }
-    }
-    
-    const posts = await getAllPosts();
+function incrementViews(postId) {
+    const posts = getAllPosts();
     const post = posts.find(p => p.id === postId);
     if (!post) return;
     
     if (!post.views) post.views = 0;
     post.views++;
-    await savePosts(posts);
+    savePosts(posts);
 }
 
 // Format number (e.g., 15000 -> 15K)
