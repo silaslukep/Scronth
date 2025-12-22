@@ -159,6 +159,54 @@ function banPost(postId) {
     return true;
 }
 
+// Delete a post permanently
+function deletePost(postId) {
+    const posts = getAllPosts();
+    const filteredPosts = posts.filter(p => p.id !== postId);
+    savePosts(filteredPosts);
+    return true;
+}
+
+// Delete a user account permanently
+function deleteUser(username) {
+    if (username === 'silas.palmer' || username === 'Scronth') return false; // Can't delete admins
+    
+    // Remove from users
+    const users = getUsers();
+    delete users[username];
+    saveUsers(users);
+    
+    // Remove from profiles
+    const profiles = localStorage.getItem('scronth_profiles');
+    const allProfiles = profiles ? JSON.parse(profiles) : {};
+    delete allProfiles[username];
+    localStorage.setItem('scronth_profiles', JSON.stringify(allProfiles));
+    
+    // Delete all their posts
+    const posts = getAllPosts();
+    const filteredPosts = posts.filter(p => p.username !== username);
+    savePosts(filteredPosts);
+    
+    // Remove from banned list if there
+    const banned = localStorage.getItem('scronth_banned');
+    const bannedList = banned ? JSON.parse(banned) : [];
+    const newBannedList = bannedList.filter(u => u !== username);
+    localStorage.setItem('scronth_banned', JSON.stringify(newBannedList));
+    
+    // Remove from admin list if there
+    const admins = localStorage.getItem('scronth_admins');
+    const adminList = admins ? JSON.parse(admins) : [];
+    const newAdminList = adminList.filter(u => u !== username);
+    localStorage.setItem('scronth_admins', JSON.stringify(newAdminList));
+    
+    // Log out if they're currently logged in
+    if (getCurrentUser() === username) {
+        logout();
+    }
+    
+    return true;
+}
+
 // Get user profile data
 function getUserProfile(username) {
     const profiles = localStorage.getItem('scronth_profiles');

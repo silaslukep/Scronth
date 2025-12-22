@@ -186,7 +186,12 @@ function loadFeed() {
         const views = post.views || 0;
         const hasLikedPost = currentUser && hasLiked(post.id, currentUser);
         
-        const adminControls = isCurrentUserAdmin ? `<button class="ban-post-btn" data-post-id="${post.id}" title="Ban this post">×</button>` : '';
+        const adminControls = isCurrentUserAdmin ? `
+            <div class="admin-controls">
+                <button class="admin-delete-post-btn" data-post-id="${post.id}" title="Delete this post">🗑️</button>
+                <button class="admin-delete-user-btn" data-username="${post.username}" title="Delete this user">👤🗑️</button>
+            </div>
+        ` : '';
         
         const likeClass = hasLikedPost ? 'liked' : '';
         const likeButton = currentUser ? `<button class="like-btn ${likeClass}" data-post-id="${post.id}">👍</button>` : '<span class="engagement-icon">👍</span>';
@@ -229,13 +234,30 @@ function loadFeed() {
         `;
     }).join('');
     
-    // Setup admin ban post buttons
+    // Setup admin delete post buttons
     if (isCurrentUserAdmin) {
-        document.querySelectorAll('.ban-post-btn').forEach(btn => {
+        document.querySelectorAll('.admin-delete-post-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const postId = this.dataset.postId;
-                if (confirm('Are you sure you want to ban this post?')) {
-                    if (banPost(postId)) {
+                if (confirm('Are you sure you want to DELETE this post permanently? This cannot be undone.')) {
+                    if (deletePost(postId)) {
+                        loadFeed();
+                    }
+                }
+            });
+        });
+        
+        // Setup admin delete user buttons
+        document.querySelectorAll('.admin-delete-user-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const username = this.dataset.username;
+                if (username === 'silas.palmer' || username === 'Scronth') {
+                    alert('Cannot delete admin accounts');
+                    return;
+                }
+                if (confirm(`Are you sure you want to DELETE the user "${username}" permanently? This will delete their account, all their posts, and cannot be undone.`)) {
+                    if (deleteUser(username)) {
+                        alert(`User "${username}" has been deleted.`);
                         loadFeed();
                     }
                 }
