@@ -6,7 +6,7 @@ const blockedWords = [
     'damn', 'hell', 'crap', 'piss', 'ass', 'bitch', 'bastard', 'dick', 'fuck', 'shit',
     // Mean/violent words
     'kill', 'murder', 'die', 'hate', 'stupid', 'idiot', 'moron', 'dumb', 'ugly', 'fat',
-    'attack', 'fight', 'hurt', 'destroy', 'violence', 'weapon', 'gun', 'knife', 'bomb'
+    'attack', 'fight', 'hurt', 'destroy', 'violence', 'weapon', 'gun', 'knife', 'bomb', 'gng', 'sybau'
 ];
 
 function filterContent(text) {
