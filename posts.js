@@ -2,7 +2,7 @@
 
 // Content filter - AI-like detection for mean, violent, or swear words
 const blockedWords = [
-    // Swear words
+    // Swear words (as whole words only)
     'damn', 'hell', 'crap', 'piss', 'ass', 'bitch', 'bastard', 'dick', 'fuck', 'shit',
     // Mean/violent words
     'kill', 'murder', 'die', 'hate', 'stupid', 'idiot', 'moron', 'dumb', 'ugly', 'fat',
@@ -11,8 +11,14 @@ const blockedWords = [
 
 function filterContent(text) {
     const lowerText = text.toLowerCase();
+    
+    // Use word boundaries to match whole words only
+    // This prevents "hell" from matching "hello", "shell", etc.
     for (let word of blockedWords) {
-        if (lowerText.includes(word)) {
+        // Create regex pattern with word boundaries
+        // \b matches word boundaries (start/end of word)
+        const wordPattern = new RegExp('\\b' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+        if (wordPattern.test(lowerText)) {
             return { blocked: true, reason: 'Content contains inappropriate language' };
         }
     }

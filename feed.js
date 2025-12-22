@@ -50,12 +50,17 @@ function setupPostForm() {
         return;
     }
     
-    // Check if user is banned
+    // Check if user is banned - prevent posting
     const currentUser = getCurrentUser();
     if (isBanned(currentUser)) {
-        document.getElementById('not-logged-in').innerHTML = '<p>Your account has been banned.</p>';
+        document.getElementById('not-logged-in').innerHTML = '<p style="color: #cc0000; font-weight: bold;">Your account has been banned. You cannot create posts.</p>';
         document.getElementById('not-logged-in').style.display = 'block';
         document.getElementById('post-form-container').style.display = 'none';
+        // Force logout banned users
+        logout();
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
         return;
     }
     

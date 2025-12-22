@@ -33,20 +33,27 @@ function getCurrentUser() {
 function login(username, password) {
     const users = getUsers();
     
-    // Check if account is banned (need to check posts.js function)
-    // We'll check this in the login form handler
+    // Check if account is banned - prevent login
+    if (typeof isBanned !== 'undefined' && isBanned(username)) {
+        return { success: false, message: 'This account has been banned' };
+    }
     
     if (users[username] && users[username] === password) {
         localStorage.setItem('scronth_logged_in', 'true');
         localStorage.setItem('scronth_current_user', username);
-        return true;
+        return { success: true };
     }
-    return false;
+    return { success: false, message: 'Invalid username or password' };
 }
 
 // Sign up new user
 function signup(username, password) {
     const users = getUsers();
+    
+    // Check if trying to sign up with a banned username
+    if (typeof isBanned !== 'undefined' && isBanned(username)) {
+        return { success: false, message: 'This username is banned and cannot be used' };
+    }
     
     if (users[username]) {
         return { success: false, message: 'Username already exists' };
@@ -126,16 +133,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 existingError.remove();
             }
             
-            if (login(username, password)) {
-                // Check if account is banned
-                if (typeof isBanned !== 'undefined' && isBanned(username)) {
-                    showError(form, 'This account has been banned');
-                    logout();
-                } else {
-                    window.location.href = 'index.html';
-                }
+            const loginResult = login(username, password);
+            if (loginResult.success) {
+                window.location.href = 'index.html';
             } else {
-                showError(form, 'Invalid username or password');
+                showError(form, loginResult.message || 'Invalid username or password');
             }
         }
     });
