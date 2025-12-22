@@ -5,8 +5,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const isIndex = path.includes('index.html') || path === '/' || path.endsWith('/');
     
     if (isIndex) {
-        loadFeed();
         setupPostForm();
+        loadFeed();
         updateNav();
     }
 });
@@ -45,17 +45,27 @@ function updateNav() {
 }
 
 function setupPostForm() {
+    const postFormContainer = document.getElementById('post-form-container');
+    const notLoggedIn = document.getElementById('not-logged-in');
+    
+    if (!postFormContainer) return;
+    
     if (!isLoggedIn()) {
-        document.getElementById('not-logged-in').style.display = 'block';
+        if (notLoggedIn) {
+            notLoggedIn.style.display = 'block';
+        }
+        postFormContainer.style.display = 'none';
         return;
     }
     
     // Check if user is banned - prevent posting
     const currentUser = getCurrentUser();
     if (isBanned(currentUser)) {
-        document.getElementById('not-logged-in').innerHTML = '<p style="color: #cc0000; font-weight: bold;">Your account has been banned. You cannot create posts.</p>';
-        document.getElementById('not-logged-in').style.display = 'block';
-        document.getElementById('post-form-container').style.display = 'none';
+        if (notLoggedIn) {
+            notLoggedIn.innerHTML = '<p style="color: #cc0000; font-weight: bold;">Your account has been banned. You cannot create posts.</p>';
+            notLoggedIn.style.display = 'block';
+        }
+        postFormContainer.style.display = 'none';
         // Force logout banned users
         logout();
         setTimeout(() => {
@@ -64,8 +74,11 @@ function setupPostForm() {
         return;
     }
     
-    document.getElementById('not-logged-in').style.display = 'none';
-    document.getElementById('post-form-container').style.display = 'block';
+    // User is logged in and not banned - show post form
+    if (notLoggedIn) {
+        notLoggedIn.style.display = 'none';
+    }
+    postFormContainer.style.display = 'block';
     
     const form = document.getElementById('post-form');
     const imageInput = document.getElementById('post-image');

@@ -27,6 +27,31 @@
     
     <main>
         <div class="feed-container">
+            <div id="post-form-container" style="display: none;">
+                <div class="post-form-card">
+                    <form id="post-form" class="post-form">
+                        <textarea id="post-content" placeholder="What's on your mind?" rows="4" maxlength="500"></textarea>
+                        <div class="image-upload-section">
+                            <label for="post-image" class="image-upload-label">
+                                <span class="upload-icon">📷</span> Attach Photo
+                            </label>
+                            <input type="file" id="post-image" accept="image/*" style="display: none;">
+                            <div id="image-preview" class="image-preview" style="display: none;">
+                                <img id="preview-img" src="" alt="Preview">
+                                <button type="button" id="remove-image" class="remove-image-btn">×</button>
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-btn post-btn">Post</button>
+                    </form>
+                    <div id="post-error" class="error-message" style="display: none;"></div>
+                </div>
+            </div>
+            
+            <div id="not-logged-in" class="info-text" style="display: none;">
+                <p>you cannot create posts since</p>
+                <p>you dont have an account</p>
+            </div>
+            
             <div id="posts-feed" class="posts-feed"></div>
         </div>
     </main>

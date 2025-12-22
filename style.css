@@ -14,10 +14,13 @@ body {
 
 /* Header */
 header {
-    background-color: #4a7ba7;
+    background: linear-gradient(to bottom, #2d4a6b, #1e3247);
     width: 100%;
     padding: 12px 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
 .header-content {
@@ -368,6 +371,51 @@ main {
     max-width: 600px;
     margin: 20px auto;
     padding: 0 20px;
+}
+
+.post-form-card {
+    background: white;
+    border: 1px solid #000;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.post-form {
+    margin: 0;
+}
+
+.post-form textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    resize: vertical;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.post-form textarea:focus {
+    outline: none;
+    border-color: #4a7ba7;
+}
+
+.post-btn {
+    width: 100%;
+    padding: 10px;
+    background: #4a7ba7;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.post-btn:hover {
+    background: #5a9bd4;
 }
 
 /* Image Upload */
