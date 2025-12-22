@@ -122,7 +122,7 @@ function setupPostForm() {
         imagePreview.style.display = 'none';
     });
     
-    form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const content = document.getElementById('post-content').value.trim();
@@ -134,7 +134,7 @@ function setupPostForm() {
             return;
         }
         
-        const result = createPost(getCurrentUser(), content, imageData);
+        const result = await createPost(getCurrentUser(), content, imageData);
         
         if (result.success) {
             document.getElementById('post-content').value = '';
@@ -145,7 +145,7 @@ function setupPostForm() {
             
             // Immediately reload feed to show new post
             console.log('Post created! Reloading feed...');
-            loadFeed();
+            await loadFeed();
         } else {
             errorDiv.textContent = result.message;
             errorDiv.style.display = 'block';
@@ -153,7 +153,7 @@ function setupPostForm() {
     });
 }
 
-function loadFeed() {
+async function loadFeed() {
     const feed = document.getElementById('posts-feed');
     if (!feed) {
         console.error('Posts feed element not found!');
@@ -164,7 +164,7 @@ function loadFeed() {
     // No login required to view posts - THIS IS A REAL PUBLIC SYSTEM
     // Posts are stored in localStorage
     try {
-        const allPosts = getAllPosts();
+        const allPosts = await getAllPosts();
         console.log('ALL POSTS FROM STORAGE:', allPosts);
         
         if (!Array.isArray(allPosts)) {
@@ -190,12 +190,12 @@ function loadFeed() {
         const currentUser = isLoggedIn() ? getCurrentUser() : null;
         const isCurrentUserAdmin = currentUser && isAdmin(currentUser);
         
-        // Process posts
-        feed.innerHTML = visiblePosts.map(post => {
+        // Process posts asynchronously
+        const postPromises = visiblePosts.map(async (post) => {
             // Track view for everyone
             if (post && post.id) {
                 try {
-                    incrementViews(post.id);
+                    await incrementViews(post.id);
                 } catch (e) {
                     console.error('Error incrementing views:', e);
                 }
@@ -203,7 +203,7 @@ function loadFeed() {
             
             const timestamp = post.timestamp ? formatTimestamp(post.timestamp) : 'recently';
             const imageHtml = post.image ? `<div class="post-image-container"><img src="${post.image}" alt="Post image" class="post-image"></div>` : '';
-            const pfp = getProfilePicture(post.username);
+            const pfp = await getProfilePicture(post.username);
             const pfpHtml = pfp ? `<img src="${pfp}" alt="${post.username}" class="post-pfp">` : '<div class="post-pfp default-pfp"></div>';
             
             // Split content into title and body if it has multiple lines
@@ -215,7 +215,7 @@ function loadFeed() {
             const likes = post.likes ? post.likes.length : 0;
             const replies = post.replies ? post.replies.length : 0;
             const views = post.views || 0;
-            const hasLikedPost = currentUser && hasLiked(post.id, currentUser);
+            const hasLikedPost = currentUser && await hasLiked(post.id, currentUser);
         
             const adminControls = isCurrentUserAdmin ? `
                 <div class="admin-controls">
@@ -263,16 +263,19 @@ function loadFeed() {
                     ` : ''}
                 </div>
             `;
-        }).join('');
+        });
+        
+        const postHtmls = await Promise.all(postPromises);
+        feed.innerHTML = postHtmls.join('');
     
     // Setup admin delete post buttons
     if (isCurrentUserAdmin) {
         document.querySelectorAll('.admin-delete-post-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', async function() {
                 const postId = this.dataset.postId;
                 if (confirm('Are you sure you want to DELETE this post permanently? This cannot be undone.')) {
-                    if (deletePost(postId)) {
-                        loadFeed();
+                    if (await deletePost(postId)) {
+                        await loadFeed();
                     }
                 }
             });
@@ -280,16 +283,16 @@ function loadFeed() {
         
         // Setup admin delete user buttons
         document.querySelectorAll('.admin-delete-user-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', async function() {
                 const username = this.dataset.username;
                 if (username === 'silas.palmer' || username === 'Scronth') {
                     alert('Cannot delete admin accounts');
                     return;
                 }
                 if (confirm(`Are you sure you want to DELETE the user "${username}" permanently? This will delete their account, all their posts, and cannot be undone.`)) {
-                    if (deleteUser(username)) {
+                    if (await deleteUser(username)) {
                         alert(`User "${username}" has been deleted.`);
-                        loadFeed();
+                        await loadFeed();
                     }
                 }
             });
@@ -298,48 +301,48 @@ function loadFeed() {
     
     // Setup like buttons
     document.querySelectorAll('.like-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const postId = this.dataset.postId;
-            const currentUser = getCurrentUser();
-            if (toggleLike(postId, currentUser)) {
-                loadFeed();
-            }
-        });
+            btn.addEventListener('click', async function() {
+                const postId = this.dataset.postId;
+                const currentUser = getCurrentUser();
+                if (await toggleLike(postId, currentUser)) {
+                    await loadFeed();
+                }
+            });
     });
     
     // Setup reply buttons
     document.querySelectorAll('.reply-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const postId = this.dataset.postId;
-            const replyForm = document.getElementById(`reply-form-${postId}`);
-            const repliesContainer = document.getElementById(`replies-${postId}`);
-            
-            if (replyForm.style.display === 'none') {
-                replyForm.style.display = 'block';
-                loadReplies(postId);
-                repliesContainer.style.display = 'block';
-            } else {
-                replyForm.style.display = 'none';
-                repliesContainer.style.display = 'none';
-            }
-        });
+            btn.addEventListener('click', async function() {
+                const postId = this.dataset.postId;
+                const replyForm = document.getElementById(`reply-form-${postId}`);
+                const repliesContainer = document.getElementById(`replies-${postId}`);
+                
+                if (replyForm.style.display === 'none') {
+                    replyForm.style.display = 'block';
+                    await loadReplies(postId);
+                    repliesContainer.style.display = 'block';
+                } else {
+                    replyForm.style.display = 'none';
+                    repliesContainer.style.display = 'none';
+                }
+            });
     });
     
     // Setup reply submit buttons
     document.querySelectorAll('.reply-submit-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const postId = this.dataset.postId;
-            const replyInput = this.previousElementSibling;
-            const content = replyInput.value.trim();
-            
-            if (!content) return;
-            
-            const currentUser = getCurrentUser();
-            if (addReply(postId, currentUser, content)) {
-                replyInput.value = '';
-                loadFeed();
-            }
-        });
+            btn.addEventListener('click', async function() {
+                const postId = this.dataset.postId;
+                const replyInput = this.previousElementSibling;
+                const content = replyInput.value.trim();
+                
+                if (!content) return;
+                
+                const currentUser = getCurrentUser();
+                if (await addReply(postId, currentUser, content)) {
+                    replyInput.value = '';
+                    await loadFeed();
+                }
+            });
     });
     
     } catch (error) {
@@ -349,19 +352,19 @@ function loadFeed() {
     }
 }
 
-function loadReplies(postId) {
+async function loadReplies(postId) {
     const repliesContainer = document.getElementById(`replies-${postId}`);
     if (!repliesContainer) return;
     
-    const replies = getReplies(postId);
+    const replies = await getReplies(postId);
     if (replies.length === 0) {
         repliesContainer.innerHTML = '<div class="no-replies">No replies yet.</div>';
         return;
     }
     
-    repliesContainer.innerHTML = replies.map(reply => {
+    const replyPromises = replies.map(async (reply) => {
         const timestamp = formatTimestamp(reply.timestamp);
-        const pfp = getProfilePicture(reply.username);
+        const pfp = await getProfilePicture(reply.username);
         const pfpHtml = pfp ? `<img src="${pfp}" alt="${reply.username}" class="reply-pfp">` : '<div class="reply-pfp default-pfp"></div>';
         
         return `
@@ -374,7 +377,10 @@ function loadReplies(postId) {
                 </div>
             </div>
         `;
-    }).join('');
+    });
+    
+    const replyHtmls = await Promise.all(replyPromises);
+    repliesContainer.innerHTML = replyHtmls.join('');
 }
 
 function escapeHtml(text) {

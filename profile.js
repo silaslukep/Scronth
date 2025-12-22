@@ -9,8 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    loadProfile(profileUser);
-    loadUserPosts(profileUser);
+    loadProfile(profileUser).then(() => {
+        loadUserPosts(profileUser);
+    });
     updateNav();
 });
 
@@ -38,7 +39,7 @@ function updateNav() {
     }
 }
 
-function loadProfile(username) {
+async function loadProfile(username) {
     // Check if user is banned
     if (isBanned(username)) {
         document.getElementById('profile-content').innerHTML = '<p class="banned-message">This account has been banned.</p>';
@@ -46,7 +47,7 @@ function loadProfile(username) {
         return;
     }
     
-    const profile = getUserProfile(username);
+    const profile = await getUserProfile(username);
     const currentUser = isLoggedIn() ? getCurrentUser() : null;
     const isOwnProfile = isLoggedIn() && currentUser === username;
     const isFollowing = isLoggedIn() && profile.followers.includes(currentUser);
@@ -123,8 +124,9 @@ function loadProfile(username) {
                 followBtn.textContent = 'Unfollow';
                 followBtn.dataset.following = 'true';
             }
-            loadProfile(username);
-            loadUserPosts(username); // Reload to update stats
+            loadProfile(username).then(() => {
+                loadUserPosts(username);
+            }); // Reload to update stats
         });
     }
     
@@ -132,20 +134,20 @@ function loadProfile(username) {
     loadUserPosts(username);
 }
 
-function loadUserPosts(username) {
+async function loadUserPosts(username) {
     const postsContainer = document.getElementById('profile-posts');
-    const posts = getPostsByUser(username);
+    const posts = await getPostsByUser(username);
     
     if (posts.length === 0) {
         postsContainer.innerHTML = '<p class="no-posts">No posts yet.</p>';
         return;
     }
     
-    postsContainer.innerHTML = posts.map(post => {
+    const postPromises = posts.map(async (post) => {
         const timestamp = formatTimestamp(post.timestamp);
         const imageHtml = post.image ? `<div class="post-image-container"><img src="${post.image}" alt="Post image" class="post-image"></div>` : '';
         const contentHtml = post.content ? `<div class="post-content">${escapeHtml(post.content)}</div>` : '';
-        const pfp = getProfilePicture(post.username);
+        const pfp = await getProfilePicture(post.username);
         const pfpHtml = pfp ? `<img src="${pfp}" alt="${post.username}" class="post-pfp">` : '<div class="post-pfp default-pfp"></div>';
         
         // Initialize post data if needed
@@ -165,7 +167,10 @@ function loadUserPosts(username) {
                 ${imageHtml}
             </div>
         `;
-    }).join('');
+    });
+    
+    const postHtmls = await Promise.all(postPromises);
+    postsContainer.innerHTML = postHtmls.join('');
 }
 
 function escapeHtml(text) {
