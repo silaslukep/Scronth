@@ -142,6 +142,9 @@ function setupPostForm() {
             imageData = null;
             imagePreview.style.display = 'none';
             errorDiv.style.display = 'none';
+            
+            // Immediately reload feed to show new post
+            console.log('Post created! Reloading feed...');
             loadFeed();
         } else {
             errorDiv.textContent = result.message;
@@ -161,10 +164,17 @@ function loadFeed() {
     // No login required to view posts - THIS IS A REAL PUBLIC SYSTEM
     try {
         const allPosts = getAllPosts();
-        const visiblePosts = allPosts.filter(post => post && !post.blocked);
+        console.log('ALL POSTS FROM STORAGE:', allPosts);
+        
+        const visiblePosts = allPosts.filter(post => {
+            if (!post) return false;
+            if (post.blocked === true) return false;
+            return true;
+        });
         
         console.log('PUBLIC FEED LOADING - Total posts:', allPosts.length, 'Visible posts:', visiblePosts.length);
         console.log('Posts are PUBLIC - visible to everyone, no login required!');
+        console.log('Visible posts:', visiblePosts);
         
         if (visiblePosts.length === 0) {
             feed.innerHTML = '<p class="no-posts">No posts yet. Be the first to post!</p>';
@@ -176,11 +186,15 @@ function loadFeed() {
         
         feed.innerHTML = visiblePosts.map(post => {
             // Track view for everyone
-            if (post.id) {
-                incrementViews(post.id);
+            if (post && post.id) {
+                try {
+                    incrementViews(post.id);
+                } catch (e) {
+                    console.error('Error incrementing views:', e);
+                }
             }
         
-        const timestamp = formatTimestamp(post.timestamp);
+        const timestamp = post.timestamp ? formatTimestamp(post.timestamp) : 'recently';
         const imageHtml = post.image ? `<div class="post-image-container"><img src="${post.image}" alt="Post image" class="post-image"></div>` : '';
         const pfp = getProfilePicture(post.username);
         const pfpHtml = pfp ? `<img src="${pfp}" alt="${post.username}" class="post-pfp">` : '<div class="post-pfp default-pfp"></div>';
