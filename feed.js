@@ -6,7 +6,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (isIndex) {
         setupPostForm();
-        loadFeed().catch(err => console.error('Error loading feed:', err));
+        loadFeed().catch(err => {
+            console.error('Error loading feed:', err);
+            const feed = document.getElementById('posts-feed');
+            if (feed) {
+                feed.innerHTML = '<p class="no-posts">Error loading posts: ' + (err.message || 'Unknown error') + '. Please check the console and refresh.</p>';
+            }
+        });
         updateNav();
     }
 });
@@ -162,10 +168,16 @@ async function loadFeed() {
     
     // Load feed for EVERYONE - posts are 100% PUBLIC!
     // No login required to view posts - THIS IS A REAL PUBLIC SYSTEM
-    // Posts are stored in Firebase cloud - visible to ALL users across all devices!
+    // Posts are stored in Firebase cloud (if configured) or localStorage
     try {
         const allPosts = await getAllPosts();
         console.log('ALL POSTS FROM STORAGE:', allPosts);
+        
+        if (!Array.isArray(allPosts)) {
+            console.error('Posts is not an array:', allPosts);
+            feed.innerHTML = '<p class="no-posts">Error loading posts. Please refresh the page.</p>';
+            return;
+        }
         
         const visiblePosts = allPosts.filter(post => {
             if (!post) return false;
@@ -175,8 +187,6 @@ async function loadFeed() {
         
         console.log('PUBLIC FEED LOADING - Total posts:', allPosts.length, 'Visible posts:', visiblePosts.length);
         console.log('Posts are PUBLIC - visible to everyone, no login required!');
-        console.log('Posts stored in cloud - visible across all devices and browsers!');
-        console.log('Visible posts:', visiblePosts);
         
         if (visiblePosts.length === 0) {
             feed.innerHTML = '<p class="no-posts">No posts yet. Be the first to post!</p>';
@@ -343,7 +353,8 @@ async function loadFeed() {
     
     } catch (error) {
         console.error('Error loading feed:', error);
-        feed.innerHTML = '<p class="no-posts">Error loading posts. Please refresh the page.</p>';
+        console.error('Error details:', error.message, error.stack);
+        feed.innerHTML = '<p class="no-posts">Error loading posts: ' + (error.message || 'Unknown error') + '. Please check the console for details.</p>';
     }
 }
 

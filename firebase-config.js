@@ -15,16 +15,40 @@ let firebaseInitialized = false;
 
 // Initialize Firebase when the SDK loads
 function initFirebase() {
-    if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
-        firebase.initializeApp(firebaseConfig);
-        db = firebase.firestore();
-        firebaseInitialized = true;
-        console.log('Firebase initialized');
+    try {
+        // Check if Firebase config is valid (not dummy values)
+        const hasValidConfig = firebaseConfig.apiKey && 
+                               firebaseConfig.apiKey !== "AIzaSyDummyKeyReplaceWithReal" &&
+                               firebaseConfig.projectId && 
+                               firebaseConfig.projectId !== "scronth";
+        
+        if (typeof firebase !== 'undefined' && firebase.apps.length === 0 && hasValidConfig) {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            firebaseInitialized = true;
+            console.log('Firebase initialized successfully');
+            return true;
+        } else if (!hasValidConfig) {
+            console.log('Firebase not configured - using localStorage fallback');
+            return false;
+        }
+    } catch (error) {
+        console.error('Error initializing Firebase:', error);
+        console.log('Using localStorage fallback');
+        return false;
     }
+    return false;
 }
 
 // Check if Firebase is available
 function isFirebaseAvailable() {
-    return typeof firebase !== 'undefined' && firebaseInitialized && db !== null;
+    try {
+        return typeof firebase !== 'undefined' && 
+               firebaseInitialized && 
+               db !== null &&
+               firebaseConfig.apiKey !== "AIzaSyDummyKeyReplaceWithReal";
+    } catch (error) {
+        return false;
+    }
 }
 

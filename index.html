@@ -65,8 +65,15 @@
     <script>
         // Initialize Firebase when page loads
         window.addEventListener('DOMContentLoaded', function() {
-            if (typeof firebase !== 'undefined') {
-                initFirebase();
+            try {
+                if (typeof firebase !== 'undefined') {
+                    initFirebase();
+                } else {
+                    console.log('Firebase SDK not loaded - using localStorage only');
+                }
+            } catch (error) {
+                console.error('Error initializing Firebase:', error);
+                console.log('Continuing with localStorage fallback');
             }
         });
     </script>

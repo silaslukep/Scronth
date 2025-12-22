@@ -39,13 +39,21 @@ async function getAllPosts() {
             return posts;
         } catch (error) {
             console.error('Error loading from Firebase:', error);
+            console.log('Falling back to localStorage');
             // Fall back to localStorage
         }
     }
     
     // Fallback to localStorage (browser-specific)
-    const posts = localStorage.getItem('scronth_posts');
-    return posts ? JSON.parse(posts) : [];
+    try {
+        const postsData = localStorage.getItem('scronth_posts');
+        const posts = postsData ? JSON.parse(postsData) : [];
+        console.log('Loaded posts from localStorage:', posts.length);
+        return posts;
+    } catch (error) {
+        console.error('Error loading from localStorage:', error);
+        return [];
+    }
 }
 
 // Save posts - uses Firebase if available, falls back to localStorage
