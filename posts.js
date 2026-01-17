@@ -1,5 +1,6 @@
 // Posts and content filtering system
 
+<<<<<<< HEAD
 // Server API configuration
 const API_URL = 'https://scronth.com/api';
 
@@ -17,6 +18,8 @@ async function checkServerAvailable() {
     }
 }
 
+=======
+>>>>>>> origin/main
 // Content filter - AI-like detection for mean, violent, or swear words
 const blockedWords = [
     // Swear words (as whole words only)
@@ -42,6 +45,7 @@ function filterContent(text) {
     return { blocked: false };
 }
 
+<<<<<<< HEAD
 // Get all posts - uses Server API (PUBLIC), Firebase, or localStorage as fallback
 async function getAllPosts() {
     // Try Server API first (PUBLIC - VISIBLE TO ALL USERS!)
@@ -60,6 +64,11 @@ async function getAllPosts() {
     }
     
     // Try Firebase (CLOUD STORAGE - VISIBLE TO ALL USERS!)
+=======
+// Get all posts - uses Firebase if available (PUBLIC), falls back to localStorage
+async function getAllPosts() {
+    // Try Firebase first (CLOUD STORAGE - VISIBLE TO ALL USERS!)
+>>>>>>> origin/main
     if (isFirebaseAvailable()) {
         try {
             const snapshot = await db.collection('posts').orderBy('timestamp', 'desc').get();
@@ -79,7 +88,11 @@ async function getAllPosts() {
     try {
         const postsData = localStorage.getItem('scronth_posts');
         if (!postsData) {
+<<<<<<< HEAD
             console.log('⚠️ No posts found - Server/Firebase not available. Posts will only be visible in this browser.');
+=======
+            console.log('⚠️ No posts found - Firebase not configured. Posts will only be visible in this browser.');
+>>>>>>> origin/main
             return [];
         }
         const posts = JSON.parse(postsData);
@@ -97,10 +110,41 @@ async function getAllPosts() {
     }
 }
 
+<<<<<<< HEAD
 // Save posts - uses Server API, Firebase, or localStorage as fallback
 async function savePosts(posts) {
     // Note: Server API handles individual post operations, so this is mainly for batch operations
     // Individual posts are saved via createPost/updatePost functions
+=======
+// Save posts - uses Firebase if available (PUBLIC), falls back to localStorage
+async function savePosts(posts) {
+    // Try Firebase first (CLOUD STORAGE - PUBLIC TO ALL!)
+    if (isFirebaseAvailable()) {
+        try {
+            // Save each post to Firebase
+            const batch = db.batch();
+            posts.forEach(post => {
+                const postRef = db.collection('posts').doc(post.id);
+                batch.set(postRef, {
+                    username: post.username,
+                    content: post.content,
+                    image: post.image,
+                    timestamp: post.timestamp || new Date().toISOString(),
+                    blocked: post.blocked || false,
+                    likes: post.likes || [],
+                    replies: post.replies || [],
+                    views: post.views || 0
+                });
+            });
+            await batch.commit();
+            console.log('✅ Saved posts to Firebase CLOUD - PUBLIC to ALL users!');
+            return;
+        } catch (error) {
+            console.error('Error saving to Firebase:', error);
+            console.log('Falling back to localStorage');
+        }
+    }
+>>>>>>> origin/main
     
     // Fallback to localStorage (NOT PUBLIC)
     try {
@@ -138,6 +182,7 @@ async function createPost(username, content, imageData = null) {
         views: 0
     };
     
+<<<<<<< HEAD
     // Try Server API first (PUBLIC TO ALL USERS!)
     if (await checkServerAvailable()) {
         try {
@@ -167,6 +212,9 @@ async function createPost(username, content, imageData = null) {
     }
     
     // Try Firebase CLOUD (PUBLIC TO ALL USERS!)
+=======
+    // Save to Firebase CLOUD first (PUBLIC TO ALL USERS!)
+>>>>>>> origin/main
     if (isFirebaseAvailable()) {
         try {
             await db.collection('posts').doc(newPost.id).set({
@@ -180,6 +228,7 @@ async function createPost(username, content, imageData = null) {
                 views: newPost.views
             });
             console.log('✅ Post saved to Firebase CLOUD - PUBLIC to ALL users across ALL devices!');
+<<<<<<< HEAD
             updateUserPostCount(username);
             return { success: true, post: newPost };
         } catch (error) {
@@ -193,6 +242,23 @@ async function createPost(username, content, imageData = null) {
     posts.unshift(newPost);
     await savePosts(posts);
     
+=======
+        } catch (error) {
+            console.error('Error saving to Firebase:', error);
+            // Fall back to localStorage
+            const posts = await getAllPosts();
+            posts.unshift(newPost);
+            await savePosts(posts);
+        }
+    } else {
+        // Fallback to localStorage (NOT PUBLIC)
+        console.log('⚠️ Firebase not configured - post only visible in this browser');
+        const posts = await getAllPosts();
+        posts.unshift(newPost);
+        await savePosts(posts);
+    }
+    
+>>>>>>> origin/main
     // Update user's post count
     updateUserPostCount(username);
     
@@ -276,6 +342,7 @@ function unbanAccount(username) {
 
 // Ban a post
 async function banPost(postId) {
+<<<<<<< HEAD
     // Try Server API first
     if (await checkServerAvailable()) {
         try {
@@ -294,6 +361,8 @@ async function banPost(postId) {
         }
     }
     
+=======
+>>>>>>> origin/main
     if (isFirebaseAvailable()) {
         try {
             await db.collection('posts').doc(postId).update({ blocked: true });
@@ -573,6 +642,7 @@ function getProfileMessage(username) {
 async function toggleLike(postId, username) {
     if (!username) return false;
     
+<<<<<<< HEAD
     // Try Server API first
     if (await checkServerAvailable()) {
         try {
@@ -602,6 +672,8 @@ async function toggleLike(postId, username) {
         }
     }
     
+=======
+>>>>>>> origin/main
     if (isFirebaseAvailable()) {
         try {
             const postRef = db.collection('posts').doc(postId);
@@ -675,6 +747,7 @@ async function addReply(postId, username, content) {
         timestamp: new Date().toISOString()
     };
     
+<<<<<<< HEAD
     // Try Server API first
     if (await checkServerAvailable()) {
         try {
@@ -698,6 +771,8 @@ async function addReply(postId, username, content) {
         }
     }
     
+=======
+>>>>>>> origin/main
     if (isFirebaseAvailable()) {
         try {
             const postRef = db.collection('posts').doc(postId);
