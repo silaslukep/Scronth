@@ -167,6 +167,11 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Scronth server is running' });
 });
 
+// Root route fallback (in case static files don't work)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Start server
 async function startServer() {
     await ensureDataDir();
