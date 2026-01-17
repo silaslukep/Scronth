@@ -172,26 +172,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Static file routes for Vercel (serve HTML files directly)
-app.get('/signup.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'signup.html'));
-});
-
-app.get('/login.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'login.html'));
-});
-
-app.get('/profile.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'profile.html'));
-});
-
-app.get('/settings.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'settings.html'));
-});
-
-app.get('/admin.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
-});
+// Static files are handled by express.static middleware above
 
 // Start server
 async function startServer() {
