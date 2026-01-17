@@ -56,15 +56,17 @@ module.exports = async (req, res) => {
     
     await ensureDataDir();
     
-    const url = req.url || req.path || '';
+    // Vercel passes the path in req.url, but it's relative to the function
+    // For /api/posts, Vercel routes to /api, so req.url will be /posts
+    const path = req.url || '';
     
     // Health check
-    if (url === '/api/health' || url === '/health') {
+    if (path === '/health' || path === '/api/health') {
         return res.json({ status: 'ok', message: 'Scronth server is running' });
     }
     
-    // GET /api/posts
-    if (url === '/api/posts' && req.method === 'GET') {
+    // GET /api/posts - In Vercel, this routes to /api with path /posts
+    if ((path === '/posts' || path === '/api/posts') && req.method === 'GET') {
         try {
             const posts = await readPosts();
             posts.sort((a, b) => {
@@ -81,7 +83,7 @@ module.exports = async (req, res) => {
     }
     
     // POST /api/posts
-    if (url === '/api/posts' && req.method === 'POST') {
+    if ((path === '/posts' || path === '/api/posts') && req.method === 'POST') {
         try {
             const { username, content, image } = req.body;
             
@@ -122,9 +124,9 @@ module.exports = async (req, res) => {
     }
     
     // PUT /api/posts/:id
-    if (url.startsWith('/api/posts/') && req.method === 'PUT') {
+    if ((path.startsWith('/posts/') || path.startsWith('/api/posts/')) && req.method === 'PUT') {
         try {
-            const id = url.split('/').pop();
+            const id = path.split('/').pop();
             const updates = req.body;
             
             const posts = await readPosts();
@@ -145,9 +147,9 @@ module.exports = async (req, res) => {
     }
     
     // DELETE /api/posts/:id
-    if (url.startsWith('/api/posts/') && req.method === 'DELETE') {
+    if ((path.startsWith('/posts/') || path.startsWith('/api/posts/')) && req.method === 'DELETE') {
         try {
-            const id = url.split('/').pop();
+            const id = path.split('/').pop();
             
             const posts = await readPosts();
             const filteredPosts = posts.filter(p => p.id !== id);
