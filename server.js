@@ -200,7 +200,16 @@ function getLocalIP() {
     return 'localhost';
 }
 
-startServer().catch(console.error);
+// For Vercel deployment - export the app
+module.exports = async (req, res) => {
+    await ensureDataDir();
+    return app(req, res);
+};
+
+// For local development - only run if not on Vercel
+if (require.main === module) {
+    startServer().catch(console.error);
+}
 
 
 
