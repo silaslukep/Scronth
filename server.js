@@ -167,9 +167,41 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Scronth server is running' });
 });
 
-// Root route fallback (in case static files don't work)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+// Root route - serve index.html
+app.get('/', async (req, res) => {
+    try {
+        const fs = require('fs').promises;
+        const indexPath = path.join(__dirname, 'index.html');
+        const html = await fs.readFile(indexPath, 'utf8');
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+    } catch (error) {
+        console.error('Error serving index.html:', error);
+        res.status(500).send('Error loading page');
+    }
+});
+
+// Explicit routes for HTML files (for Vercel compatibility)
+app.get('/signup.html', async (req, res) => {
+    try {
+        const fs = require('fs').promises;
+        const html = await fs.readFile(path.join(__dirname, 'signup.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+    } catch (error) {
+        res.status(404).send('Page not found');
+    }
+});
+
+app.get('/login.html', async (req, res) => {
+    try {
+        const fs = require('fs').promises;
+        const html = await fs.readFile(path.join(__dirname, 'login.html'), 'utf8');
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+    } catch (error) {
+        res.status(404).send('Page not found');
+    }
 });
 
 // Static files are handled by express.static middleware above
