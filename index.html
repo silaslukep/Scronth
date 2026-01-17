@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scronth</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo-icon">
+                <div class="logo-circle"></div>
+                <div class="logo-dot"></div>
+            </div>
+            <div class="site-title-container">
+                <h1 class="site-title">Scronth</h1>
+                <p class="site-subtitle">Happy new year!</p>
+            </div>
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search" id="search-input">
+                <span class="search-icon">🔍</span>
+            </div>
+            <nav>
+                <a href="login.html" class="nav-link">Log in</a>
+                <a href="signup.html" class="nav-link">Sign up</a>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        <div class="feed-container">
+            <div id="post-form-container" style="display: none;">
+                <div class="post-form-card">
+                    <form id="post-form" class="post-form">
+                        <textarea id="post-content" placeholder="What's on your mind?" rows="4" maxlength="500"></textarea>
+                        <div class="image-upload-section">
+                            <label for="post-image" class="image-upload-label">
+                                <span class="upload-icon">📷</span> Attach Photo
+                            </label>
+                            <input type="file" id="post-image" accept="image/*" style="display: none;">
+                            <div id="image-preview" class="image-preview" style="display: none;">
+                                <img id="preview-img" src="" alt="Preview">
+                                <button type="button" id="remove-image" class="remove-image-btn">×</button>
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-btn post-btn">Post</button>
+                    </form>
+                    <div id="post-error" class="error-message" style="display: none;"></div>
+                </div>
+            </div>
+            
+            <div id="not-logged-in" class="info-text" style="display: none;">
+                <p>you cannot create posts since</p>
+                <p>you dont have an account</p>
+            </div>
+            
+            <div id="posts-feed" class="posts-feed"></div>
+        </div>
+    </main>
+    <!-- Firebase SDK - REQUIRED FOR PUBLIC POSTS -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+        // Initialize Firebase when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            try {
+                if (typeof firebase !== 'undefined') {
+                    initFirebase();
+                }
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+            }
+        });
+    </script>
+    <script src="auth.js"></script>
+    <script src="posts.js"></script>
+    <script src="feed.js"></script>
+</body>
+</html>
+

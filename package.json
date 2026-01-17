@@ -1,0 +1,28 @@
+{
+  "name": "scronth",
+  "version": "1.0.0",
+  "description": "Scronth - A social media platform where Everybody is kind!",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "electron": "electron .",
+    "server": "node server.js",
+    "dev": "node server.js",
+    "build": "electron-builder"
+  },
+  "keywords": [
+    "social-media",
+    "scronth"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "electron": "^27.0.0"
+  }
+}
+
+
