@@ -13,55 +13,95 @@
 </head>
 <body>
   <header>
-    <h1>Scronth.com</h1>
+   <img loading="lazy" alt="" src="https://p19-common-sign.tiktokcdn-us.com/tos-useast8-avt-0068-tx2/bbf0ea2ad9bf16e3d1814eaa9c234b59~tplv-tiktokx-cropcenter:1080:1080.jpeg?dr=9640&amp;refresh_token=5f46fafb&amp;x-expires=1769994000&amp;x-signature=KhlJDxRwZRbOR2LW7VJmNZvPgHE%3D&amp;t=4d5b0474&amp;ps=13740610&amp;shp=a5d48078&amp;shcp=81f88b70&amp;idc=useast5" class="css-10s4roi-7937d88b--ImgAvatar e1iqrkv71">
+ <h1>Scronth.com</h1>
   </header>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Public Posts</title>
+</head>
 
+<body>
 
-<h1>Home</h1>
+<h1>Public Posts</h1>
 
-<div id="postForm">
-    <input type="text" id="author" placeholder="Your name" required>
-    <textarea id="message" placeholder="Write your post..." required></textarea>
-    <button onclick="addPost()">Post</button>
-</div>
+<form id="postForm">
+  <input id="name" placeholder="Your name"><br><br>
+  <textarea id="content" rows="4" cols="50" placeholder="Write something..."></textarea><br>
+  <button type="submit">Publish</button>
+</form>
 
+<h2>All Posts</h2>
 <div id="posts"></div>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore-compat.js"></script>
+
 <script>
-    function loadPosts() {
-        let posts = JSON.parse(localStorage.getItem("forumPosts")) || [];
-        let postsContainer = document.getElementById("posts");
-        postsContainer.innerHTML = "";
-        posts.forEach(post => {
-            postsContainer.innerHTML += `
-                <div class="post">
-                    <div class="author">${post.author}</div>
-                    <div class="time">${post.time}</div>
-                    <p>${post.message}</p>
-                </div>
-            `;
-        });
-    }
+// ------------------------------------------------------
+// 1. YOUR FIREBASE CONFIG (replace with your real config)
+// ------------------------------------------------------
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID"
+};
 
-    function addPost() {
-        let author = document.getElementById("author").value.trim();
-        let message = document.getElementById("message").value.trim();
-        if (!author || !message) return alert("Please fill in all fields.");
+// ------------------------------------------------------
+// 2. INIT FIREBASE + DATABASE
+// ------------------------------------------------------
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-        let posts = JSON.parse(localStorage.getItem("forumPosts")) || [];
-        posts.unshift({
-            author: author,
-            message: message,
-            time: new Date().toLocaleString()
-        });
-        localStorage.setItem("forumPosts", JSON.stringify(posts));
+// ------------------------------------------------------
+// 3. HANDLE POST SUBMISSION
+// ------------------------------------------------------
+document.getElementById("postForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
 
-        document.getElementById("author").value = "";
-        document.getElementById("message").value = "";
-        loadPosts();
-    }
+  const name = document.getElementById("name").value.trim();
+  const text = document.getElementById("content").value.trim();
 
-    loadPosts();
+  if (!name || !text) return;
+
+  await db.collection("posts").add({
+    name: name,
+    content: text,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  document.getElementById("content").value = "";
+});
+
+// ------------------------------------------------------
+// 4. LIVE DISPLAY OF POSTS
+// ------------------------------------------------------
+db.collection("posts")
+  .orderBy("createdAt", "desc")
+  .onSnapshot(function(snapshot) {
+    const postsEl = document.getElementById("posts");
+    postsEl.innerHTML = "";
+    snapshot.forEach(function(doc) {
+      const data = doc.data();
+
+      const div = document.createElement("div");
+      div.style.padding = "10px";
+      div.style.border = "1px solid #ccc";
+      div.style.marginBottom = "10px";
+
+      div.innerHTML =
+        "<strong>" + (data.name || "Anonymous") + "</strong><br>" +
+        (data.content || "");
+
+      postsEl.appendChild(div);
+    });
+  });
 </script>
+
+</body>
+</html>
+
   </body>
 </html>
